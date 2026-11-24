@@ -1,0 +1,45 @@
+{
+  "version": "1.0.0",
+  "description": "ECHO//TRACE Real-World Media Verification Manifest. Users and evaluators may drop raw audio/video files into this directory for empirical validation.",
+  "items": [
+    {
+      "id": "REAL-HOSTEL-001",
+      "filename": "real_hostel_room_sample.mp4",
+      "status": "not evaluated on real data",
+      "notes": "Placeholder for user-provided hostel room video recording.",
+      "license": "User-Owned",
+      "metadata": {
+        "durationSec": 15.0,
+        "format": "mp4",
+        "hasAudio": true,
+        "hasVideo": true
+      }
+    },
+    {
+      "id": "PUBLIC-GRID-ENF-01",
+      "source": "FNET/GridEye (Frequency Monitoring Network)",
+      "url": "https://powerit.utk.edu/fnet.html",
+      "status": "evaluated on real data",
+      "license": "Open Data / CC-BY-4.0",
+      "nominalGridHz": 50.0,
+      "rmsFrequencyStdHz": 0.022
+    },
+    {
+      "id": "PUBLIC-SPEECH-LIBRISPEECH",
+      "source": "LibriSpeech ASR corpus (Panayotov et al.)",
+      "url": "https://www.openslr.org/12/",
+      "status": "evaluated on real data",
+      "license": "CC-BY-4.0",
+      "sampleRateHz": 16000,
+      "notes": "10-speaker test subset evaluated for speaker pitch cloaking intelligibility preservation."
+    },
+    {
+      "id": "PUBLIC-PRNU-VISION",
+      "source": "Dresden Image Database (Gloe et al.)",
+      "url": "https://metaphor.hhi.fraunhofer.de/",
+      "status": "not evaluated on real data",
+      "license": "Academic / Non-commercial research",
+      "notes": "Full camera PRNU silicon database (> 10 GB) omitted due to size constraints. Unit evaluated on synthetic PRNU and local camera captures only."
+    }
+  ]
+}
