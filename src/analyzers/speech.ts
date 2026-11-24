@@ -1,4 +1,5 @@
 import { Finding } from '../types';
+import { scanAndValidateIdentifiers } from '../dsp/id/checksums';
 
 export interface SpokenSecretFinding {
   secretType: 'phone' | 'email' | 'password' | 'otp' | 'id_card';
@@ -136,6 +137,58 @@ export function analyzeSpokenSecrets(
       },
       fixable: true,
       fixDescription: 'Mute or bleep spoken audio segment.',
+    });
+  }
+
+  // 3. M8 Mathematical Identifier Checks (Luhn cards, Verhoeff Aadhaar, PAN)
+  const idScan = scanAndValidateIdentifiers(transcript);
+  for (const card of idScan.cards) {
+    const redacted = card.slice(0, 4) + '••••••••' + card.slice(-4);
+    findings.push({
+      id: `id-card-${card.slice(-4)}`,
+      category: 'id_check',
+      title: `Luhn-Verified Payment Card Number Isolated ${isDemoLabel}`,
+      plainText: `Valid payment card number (${redacted}) mathematically verified via Luhn mod-10 checksum algorithm.`,
+      severity: 'critical',
+      confidence: 0.99,
+      evidenceKind: 'Measured',
+      method: 'Luhn Mod-10 Checksum Algorithm (M8)',
+      details: { maskedCard: redacted, isDemo },
+      fixable: true,
+      fixDescription: 'Redact card digits from audio / visual channels.',
+    });
+  }
+
+  for (const aadh of idScan.aadhaar) {
+    const redacted = '••••••••' + aadh.slice(-4);
+    findings.push({
+      id: `id-aadhaar-${aadh.slice(-4)}`,
+      category: 'id_check',
+      title: `Verhoeff-Verified Indian Aadhaar Number Isolated ${isDemoLabel}`,
+      plainText: `12-digit Indian national identity number (${redacted}) mathematically confirmed via Verhoeff D5 group permutation checksum.`,
+      severity: 'critical',
+      confidence: 0.99,
+      evidenceKind: 'Measured',
+      method: 'Verhoeff D5 Non-Commutative Dihedral Group Checksum (M8)',
+      details: { maskedAadhaar: redacted, isDemo },
+      fixable: true,
+      fixDescription: 'Mask identity numbers across channels.',
+    });
+  }
+
+  for (const pan of idScan.pans) {
+    findings.push({
+      id: `id-pan-${pan}`,
+      category: 'id_check',
+      title: `Valid Indian PAN Card Identifier Isolated ${isDemoLabel}`,
+      plainText: `Permanent Account Number (${pan.slice(0, 3)}•••${pan.slice(-2)}) validated against Income Tax entity syntax.`,
+      severity: 'critical',
+      confidence: 0.97,
+      evidenceKind: 'Measured',
+      method: 'Indian ITD Entity Syntax Checksum (M8)',
+      details: { maskedPan: `${pan.slice(0, 3)}•••${pan.slice(-2)}`, isDemo },
+      fixable: true,
+      fixDescription: 'Redact tax identifier.',
     });
   }
 

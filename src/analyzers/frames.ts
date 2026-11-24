@@ -1,4 +1,5 @@
 import { VisualFindingBox, Finding } from '../types';
+import { analyzeVideoForensicsM6 } from '../dsp/video/videoForensics';
 
 export interface FrameAnalysisResult {
   sceneCuts: number[];
@@ -254,6 +255,16 @@ export function analyzeVideoFrames(
         method: 'Normalized RGB Histogram Distance (Euclidean > 0.42)',
       },
     });
+  }
+
+  // M6 Video Forensics: Chi-Square, dHash, and Laplacian Sharpness
+  if (frames.length >= 2) {
+    const m6Res = analyzeVideoForensicsM6(frames);
+    for (const f of m6Res.findings) {
+      if (!findings.some(existing => existing.id === f.id)) {
+        findings.push(f);
+      }
+    }
   }
 
   return { sceneCuts, visualBoxes, findings, detectorModelUsed };
