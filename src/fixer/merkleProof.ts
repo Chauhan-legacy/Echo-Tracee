@@ -4,6 +4,8 @@
  * Generates signed receipt.json, manifest of transformations, and cryptographic verification.
  */
 
+import { signWithDeviceKey } from './deviceKey';
+
 export interface MerkleNode {
   hash: string;
   left?: MerkleNode;
@@ -22,6 +24,8 @@ export interface TransformationManifest {
   outputSha256: string;
   inputMerkleRoot: string;
   outputMerkleRoot: string;
+  inputChunkHashes?: string[];
+  outputChunkHashes?: string[];
   actions: {
     type: string;
     description: string;
@@ -30,10 +34,21 @@ export interface TransformationManifest {
 }
 
 export interface CompleteProofReceipt {
+  receiptId: string;
   manifest: TransformationManifest;
   signatureHex: string;
   publicKeyJwk: JsonWebKey;
+  deviceKeyFingerprint: string;
   verificationPassed: boolean;
+}
+
+/**
+ * Computes a standard human-readable receipt identifier: ET-XXXX-XXXX
+ */
+export async function generateReceiptId(manifest: TransformationManifest): Promise<string> {
+  const jsonStr = JSON.stringify(manifest);
+  const hash = await sha256Hex(jsonStr);
+  return `ET-${hash.slice(0, 4).toUpperCase()}-${hash.slice(4, 8).toUpperCase()}`;
 }
 
 /**
@@ -104,36 +119,21 @@ export function chunkAudioPerSecond(samples: Float32Array, sampleRate: number): 
 }
 
 /**
- * Creates signed cryptographic proof receipt with ECDSA P-256.
+ * Creates signed cryptographic proof receipt with persistent device ECDSA P-256 key.
  */
 export async function createCompleteProofReceipt(
   manifest: TransformationManifest
 ): Promise<CompleteProofReceipt> {
-  const keyPair = await crypto.subtle.generateKey(
-    { name: 'ECDSA', namedCurve: 'P-256' },
-    true,
-    ['sign', 'verify']
-  );
-
+  const receiptId = await generateReceiptId(manifest);
   const manifestStr = JSON.stringify(manifest);
-  const data = new TextEncoder().encode(manifestStr);
-
-  const signature = await crypto.subtle.sign(
-    { name: 'ECDSA', hash: { name: 'SHA-256' } },
-    keyPair.privateKey,
-    data
-  );
-
-  const sigHex = Array.from(new Uint8Array(signature))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-
-  const publicKeyJwk = await crypto.subtle.exportKey('jwk', keyPair.publicKey);
+  const { signatureHex, publicKeyJwk, fingerprint } = await signWithDeviceKey(manifestStr);
 
   return {
+    receiptId,
     manifest,
-    signatureHex: sigHex,
+    signatureHex,
     publicKeyJwk,
+    deviceKeyFingerprint: fingerprint,
     verificationPassed: true,
   };
 }

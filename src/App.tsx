@@ -18,6 +18,7 @@ import { ETBenchPage } from './components/ETBenchPage';
 import { SelfAuditPage } from './components/SelfAuditPage';
 import { CommandPalette } from './components/CommandPalette';
 import { ModelCardModal } from './components/ModelCardModal';
+import { VerifyReceiptPage } from './components/VerifyReceiptPage';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 import { ScanResult, Finding, FixReport, VisualFindingBox } from './types';
@@ -123,9 +124,19 @@ export const App: React.FC = () => {
     return { x, y };
   };
 
-  // Initialize network interception audit on mount
+  // Initialize network interception audit & check URL hash on mount
   useEffect(() => {
     initNetworkAudit();
+    if (window.location.hash.startsWith('#verify=')) {
+      setActiveTab('verify');
+    }
+    const handleHashChange = () => {
+      if (window.location.hash.startsWith('#verify=')) {
+        setActiveTab('verify');
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
   // Toggle recording mode class on body
@@ -876,6 +887,13 @@ export const App: React.FC = () => {
           {activeTab === 'audit' && (
             <ErrorBoundary fallbackTitle="Could not load Self-Audit">
               <SelfAuditPage />
+            </ErrorBoundary>
+          )}
+
+          {/* Tab: Verify Receipt */}
+          {activeTab === 'verify' && (
+            <ErrorBoundary fallbackTitle="Could not load Receipt Verifier">
+              <VerifyReceiptPage onClose={() => setActiveTab('scan')} />
             </ErrorBoundary>
           )}
         </main>

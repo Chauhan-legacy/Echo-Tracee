@@ -1,7 +1,7 @@
 import React from 'react';
 import { Scan, AlertOctagon, Wrench, Share2 } from 'lucide-react';
 
-export type ActiveTab = 'scan' | 'findings' | 'fix' | 'share' | 'bench' | 'audit' | 'evidence' | 'timeline';
+export type ActiveTab = 'scan' | 'findings' | 'fix' | 'share' | 'bench' | 'audit' | 'evidence' | 'timeline' | 'verify';
 
 interface BottomTabBarProps {
   activeTab: ActiveTab;

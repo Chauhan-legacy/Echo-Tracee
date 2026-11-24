@@ -1,5 +1,5 @@
 import React from 'react';
-import { Scan, AlertOctagon, Wrench, Layers, Network, Gauge, ShieldCheck } from 'lucide-react';
+import { Scan, AlertOctagon, Wrench, Layers, Network, Gauge, ShieldCheck, FileCheck } from 'lucide-react';
 import { ActiveTab } from './BottomTabBar';
 
 interface LeftIconRailProps {
@@ -21,6 +21,7 @@ export const LeftIconRail: React.FC<LeftIconRailProps> = ({
     { id: 'evidence' as ActiveTab, label: 'Evidence Graph', icon: Network, shortcut: '5' },
     { id: 'bench' as ActiveTab, label: 'ET-Bench', icon: Gauge, shortcut: '6' },
     { id: 'audit' as ActiveTab, label: 'Self-Audit', icon: ShieldCheck, shortcut: '7' },
+    { id: 'verify' as ActiveTab, label: 'Verify Receipt', icon: FileCheck, shortcut: '8' },
   ];
 
   return (

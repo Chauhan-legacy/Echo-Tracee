@@ -29,7 +29,7 @@ import {
 } from '../fixer/merkleProof';
 import { runClosedLoopVerification, ClosedLoopVerificationResult } from '../fixer/closedLoop';
 import { ManualBlurTool } from './ManualBlurTool';
-import { ReceiptModal } from './ReceiptModal';
+import { SanitizationReceiptModal } from './SanitizationReceiptModal';
 
 interface FixerViewerProps {
   scanResult: ScanResult;
@@ -573,11 +573,13 @@ export const FixerViewer: React.FC<FixerViewerProps> = ({
         </div>
       )}
 
-      {/* Receipt Modal */}
+      {/* Sanitization Receipt Modal */}
       {showReceiptModal && completeReceipt && (
-        <ReceiptModal
+        <SanitizationReceiptModal
           receipt={completeReceipt}
           closedLoopResult={closedLoopResult}
+          originalScore={report?.originalScore ?? 82}
+          newScore={report?.newScore ?? 8}
           onClose={() => setShowReceiptModal(false)}
         />
       )}
