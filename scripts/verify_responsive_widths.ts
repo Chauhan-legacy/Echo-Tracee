@@ -25,7 +25,8 @@ async function main() {
 
   for (const vp of WIDTHS) {
     const page = await browser.newPage({ viewport: { width: vp.w, height: vp.h } });
-    await page.goto('http://localhost:5174', { waitUntil: 'domcontentloaded' });
+    const port = process.env.PORT || '5173';
+    await page.goto(`http://localhost:${port}`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(600);
 
     const hasHorizontalScroll = await page.evaluate(() => {
