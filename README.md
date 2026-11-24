@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <em>Built for the <strong>Deploy With Embarko Student Challenge</strong>. 100% Client-Side • Zero Cloud Uploads • Mathematical Cryptographic Proofs.</em>
+  <em>100% Client-Side • Zero Cloud Uploads • Zero Telemetry • Mathematical Cryptographic Proofs.</em>
 </p>
 
 <p align="center">
@@ -79,9 +79,9 @@ ECHO//TRACE operates across **7 coordinated mathematical forensic domains**:
 
 ---
 
-## 3. Challenge Evaluation Matrix (Gates A through I)
+## 3. Architecture Evaluation Matrix (Gates A through I)
 
-ECHO//TRACE was built to satisfy every rigorous requirement of the **Deploy With Embarko Student Challenge**:
+ECHO//TRACE is engineered to satisfy the highest production and scientific standards across 9 rigorous architectural gates:
 
 | Challenge Gate | Requirement | Implementation & Measured Evidence | Status |
 | :---: | :--- | :--- | :---: |
@@ -92,7 +92,7 @@ ECHO//TRACE was built to satisfy every rigorous requirement of the **Deploy With
 | **Gate E**<br>`HONESTY` | Continental pools, never cities; RT60 class, never 3D scan; demo data labeled | Strict compliance with Honesty Rules; demo incidents clearly watermarked; mains hum identifies 50Hz/60Hz continental pools; no unprovable claims. | **PASS** |
 | **Gate F**<br>`ACCESS` | High-contrast WCAG AAA palette; keyboard navigable; focus rings | Field-notebook theme: Forest Ink (`#10291D`) and Deep Forest (`#174D35`) on Beige (`#E8DCC3`) with Lime (`#8BCF55`) accents; WCAG AAA contrast compliance. | **PASS** |
 | **Gate G**<br>`BUILD` | Strict TypeScript; static `dist/` with relative base; zero backend | 100% TypeScript compilation (`tsc -b`); builds static SPA compatible with any static web host, CDN, or local `file://` execution. | **PASS** |
-| **Gate H**<br>`SHARE` | Canvas scorecard generation; Web Share API with PNG fallback | Canvas scorecard generates at 1080x1920 (reel), 1080x1080 (square), and 1200x630 (OG) with QR code and `#DeployWithEmbarko` tag. | **PASS** |
+| **Gate H**<br>`SHARE` | Canvas scorecard generation; Web Share API with PNG fallback | Canvas scorecard generates at 1080x1920 (reel), 1080x1080 (square), and 1200x630 (OG) with QR code and cryptographic verification. | **PASS** |
 | **Gate I**<br>`VALIDATION` | Analytical cross-checks against SciPy with error $< 10^{-11}$ | Dual-implementation cross-checks verify FFT, Goertzel, Welch, and Butterworth filters against scientific references within machine epsilon. | **PASS** |
 
 ---
@@ -360,4 +360,4 @@ ECHO//TRACE is open-source software licensed under the **Apache License, Version
    limitations under the License.
 ```
 
-Built for the **Deploy With Embarko Student Challenge**. Hosted statically with relative base paths (`./`) requiring zero backend servers, zero databases, and zero external network calls.
+Independent, open-source software. Hosted statically with relative base paths (`./`) requiring zero backend servers, zero databases, and zero external network calls.
