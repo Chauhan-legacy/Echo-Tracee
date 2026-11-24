@@ -17,7 +17,11 @@
     "strict": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "echotrace-math": ["./packages/echotrace-math/src/index.ts"],
+      "echotrace-math/*": ["./packages/echotrace-math/src/*"]
+    }
   },
-  "include": ["src"]
+  "include": ["src", "packages/echotrace-math/src"]
 }
