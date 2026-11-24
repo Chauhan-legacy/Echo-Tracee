@@ -43,6 +43,7 @@ const VerifyReceiptPage = lazy(() => import('./components/VerifyReceiptPage').th
 const EvidenceGraph = lazy(() => import('./components/EvidenceGraph').then(m => ({ default: m.EvidenceGraph })));
 const TimelineViewer = lazy(() => import('./components/TimelineViewer').then(m => ({ default: m.TimelineViewer })));
 const AdvancedDrawer = lazy(() => import('./components/AdvancedDrawer').then(m => ({ default: m.AdvancedDrawer })));
+const ForensicLabModal = lazy(() => import('./components/ForensicLabModal').then(m => ({ default: m.ForensicLabModal })));
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('scan');
@@ -61,6 +62,7 @@ export const App: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLiveRoomScanOpen, setIsLiveRoomScanOpen] = useState(false);
   const [isAdvancedDrawerOpen, setIsAdvancedDrawerOpen] = useState(false);
+  const [isForensicLabOpen, setIsForensicLabOpen] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
   // Plain vs Technical toggle (F4)
@@ -613,6 +615,7 @@ export const App: React.FC = () => {
                   onExportResultsJson={handleExportResultsJson}
                   onOpenNetworkAudit={() => setIsNetworkAuditOpen(true)}
                   onOpenLiveRoomScan={() => setIsLiveRoomScanOpen(true)}
+                  onOpenForensicLab={() => setIsForensicLabOpen(true)}
                   errorMessage={errorMessage}
                 />
               </ErrorBoundary>
@@ -1029,6 +1032,19 @@ export const App: React.FC = () => {
             isOpen={isLiveRoomScanOpen}
             onClose={() => setIsLiveRoomScanOpen(false)}
             onScanComplete={processIngestedMedia}
+          />
+        )}
+      </Suspense>
+
+      {/* Deep Forensic ML & DSP Lab Modal */}
+      <Suspense fallback={null}>
+        {isForensicLabOpen && (
+          <ForensicLabModal
+            isOpen={isForensicLabOpen}
+            onClose={() => setIsForensicLabOpen(false)}
+            scanResult={scanResult}
+            audioChannelData={audioChannelData}
+            videoFrames={videoFrames}
           />
         )}
       </Suspense>

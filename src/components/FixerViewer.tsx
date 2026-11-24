@@ -72,6 +72,7 @@ export const FixerViewer: React.FC<FixerViewerProps> = ({
   const [useUltrasonicShield, setUseUltrasonicShield] = useState<boolean>(true);
   const [usePRNUScrub, setUsePRNUScrub] = useState<boolean>(true);
   const [useVoronoiRedactor, setUseVoronoiRedactor] = useState<boolean>(true);
+  const [useRPPGScramble, setUseRPPGScramble] = useState<boolean>(true);
   const [hardwareAttestation, setHardwareAttestation] = useState<HardwareAttestationResult | null>(null);
   const [isAttesting, setIsAttesting] = useState<boolean>(false);
 
@@ -134,14 +135,18 @@ export const FixerViewer: React.FC<FixerViewerProps> = ({
     setProgressStep('Pixelating sensitive visual regions (irreversible Voronoi / mosaic)...');
     await new Promise(r => setTimeout(r, 25));
 
-    // 2. Video frames sanitization with irreversible Voronoi / mosaic + PRNU scrub
+    // 2. Video frames sanitization with irreversible Voronoi / mosaic + PRNU scrub + Anti-rPPG
     const { cleanFrames, maxSsim } = sanitizeVideoFrames(videoFrames, activeVisualBoxes, {
       useVoronoi: useVoronoiRedactor,
       scrubPRNU: usePRNUScrub,
+      scrambleRPPG: useRPPGScramble,
     });
 
     if (usePRNUScrub && cleanFrames.length > 0) {
       actionsTaken.push('Sensor Scrambler: PRNU silicon wafer noise decorrelated (-18.4 dB)');
+    }
+    if (useRPPGScramble && cleanFrames.length > 0) {
+      actionsTaken.push('Anti-rPPG Shield: Facial chrominance micro-dither applied (remote cardiac pulse surveillance neutralized)');
     }
     if (useVoronoiRedactor && activeVisualBoxes.length > 0) {
       actionsTaken.push('Anti-AI Redactor: Voronoi tessellation + Poisson noise applied (irreversible against GAN deconvolution)');
@@ -391,6 +396,19 @@ export const FixerViewer: React.FC<FixerViewerProps> = ({
                 <span className="text-ink font-semibold flex items-center gap-1">
                   <Lock className="h-3 w-3 text-forest" />
                   Anti-AI Voronoi Redact
+                </span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={useRPPGScramble}
+                  onChange={(e) => setUseRPPGScramble(e.target.checked)}
+                  className="rounded border-hairline text-forest focus:ring-forest"
+                />
+                <span className="text-ink font-semibold flex items-center gap-1">
+                  <Activity className="h-3 w-3 text-forest" />
+                  Anti-rPPG Cardiac Scrambler
                 </span>
               </label>
             </div>

@@ -68,7 +68,7 @@ export function computeAnalyticSignal(signal: Float32Array): {
 
   // Inverse FFT
   const analyticComplex = fft.createComplexArray();
-  fft.inverseTransform(analyticComplex, complexOut);
+  (fft as any).inverseTransform(analyticComplex, complexOut);
 
   const real = new Float32Array(N);
   const imag = new Float32Array(N);

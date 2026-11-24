@@ -18,6 +18,7 @@ interface ScanConsoleProps {
   onExportResultsJson: () => void;
   onOpenNetworkAudit: () => void;
   onOpenLiveRoomScan?: () => void;
+  onOpenForensicLab?: () => void;
   errorMessage?: string | null;
 }
 
@@ -31,6 +32,7 @@ export const ScanConsole: React.FC<ScanConsoleProps> = ({
   onExportResultsJson,
   onOpenNetworkAudit,
   onOpenLiveRoomScan,
+  onOpenForensicLab,
   errorMessage,
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -162,7 +164,17 @@ export const ScanConsole: React.FC<ScanConsoleProps> = ({
                 <span className="font-bold text-forest">Nothing leaves your device</span>
                 <span className="hidden sm:inline text-forest-muted">• CSP connect-src: &apos;none&apos;</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                {onOpenForensicLab && (
+                  <button
+                    onClick={onOpenForensicLab}
+                    className="flex items-center gap-1 rounded-md bg-forest text-lime border border-forest/30 px-2 py-0.5 text-[11px] font-mono font-bold hover:bg-forest-deep transition shadow-sm"
+                    title="Open Deep Forensic ML & Signal Analysis Lab"
+                  >
+                    <Cpu className="h-3 w-3 text-lime" />
+                    <span>ML Lab</span>
+                  </button>
+                )}
                 <button
                   onClick={handleRunStressSuite}
                   className="hidden md:flex items-center gap-1 rounded-md bg-forest text-lime border border-forest/30 px-2 py-0.5 text-[11px] font-mono font-bold hover:bg-forest-deep transition"
@@ -329,9 +341,20 @@ export const ScanConsole: React.FC<ScanConsoleProps> = ({
               Multi-Domain Forensic Intercept Engine
             </h3>
           </div>
-          <div className="flex items-center gap-2 font-mono text-xs text-forest">
-            <span className="h-2 w-2 rounded-full bg-lime animate-pulse" />
-            <span>4 ENGINES ONLINE • LOCAL WEB WORKERS</span>
+          <div className="flex items-center gap-2">
+            {onOpenForensicLab && (
+              <button
+                onClick={onOpenForensicLab}
+                className="flex items-center gap-1.5 rounded-xl bg-forest px-3 py-1 text-xs font-bold font-mono text-lime hover:bg-forest-deep transition shadow-sm"
+              >
+                <Cpu className="h-3.5 w-3.5" />
+                <span>Launch Deep ML & Signal Lab</span>
+              </button>
+            )}
+            <div className="hidden sm:flex items-center gap-1.5 font-mono text-xs text-forest">
+              <span className="h-2 w-2 rounded-full bg-lime animate-pulse" />
+              <span>4 ENGINES ONLINE</span>
+            </div>
           </div>
         </div>
 
