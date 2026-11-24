@@ -1,0 +1,25 @@
+{
+  "source": "INCIDENT-001: The Hostel Reel",
+  "sample_rate": 48000,
+  "duration_sec": 15.0,
+  "base_hum_hz": 50.02,
+  "hum_harmonics": [
+    100.04,
+    150.06
+  ],
+  "hum_jump_sec": 11.0,
+  "hum_post_jump_hz": 50.09,
+  "ultrasonic_tone_hz": 19400.0,
+  "ultrasonic_window_sec": [
+    3.0,
+    9.5
+  ],
+  "ultrasonic_is_keyed": true,
+  "room_rt60_sec": 0.38,
+  "room_decay_class": "Medium Room",
+  "gps": {
+    "latitude": 23.2156,
+    "longitude": 72.6369,
+    "location": "Hostel Block C, Gandhinagar, Gujarat, India"
+  }
+}

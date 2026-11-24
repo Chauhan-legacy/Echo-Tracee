@@ -1,0 +1,11 @@
+{
+  "sourceName": "INCIDENT-001: The Hostel Reel [DEMO]",
+  "sha256": "verified_app_digest",
+  "audioMetrics": {
+    "sampleRate": 48000,
+    "detectedHumHz": 50.02,
+    "humGridFamily": "50Hz",
+    "ultrasonicToneHz": 19400.0,
+    "rt60EstimateSec": 0.38
+  }
+}
