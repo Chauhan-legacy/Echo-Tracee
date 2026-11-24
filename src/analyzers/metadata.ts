@@ -1,5 +1,130 @@
 import { MetadataReport, Finding } from '../types';
 import { APP_COPY } from '../constants/copy';
+import exifr from 'exifr';
+import { createFile } from 'mp4box';
+
+/**
+ * Deep async metadata parser leveraging exifr and mp4box.
+ * Extracts EXIF, XMP, QuickTime, and MP4 container atoms 100% client-side.
+ */
+export async function parseMetadataAsync(buffer: ArrayBuffer, fileName: string): Promise<{
+  report: MetadataReport;
+  findings: Finding[];
+}> {
+  // Run fast synchronous QuickTime probe first
+  const syncResult = parseMetadataFromBuffer(buffer, fileName);
+  const rawTags = { ...syncResult.report.rawTags };
+  let gps = syncResult.report.gps;
+  let creationTime = syncResult.report.creationTime;
+  let deviceModel = syncResult.report.deviceModel;
+
+  // 1. Deep EXIF / XMP / TIFF / QuickTime parsing via exifr
+  try {
+    const parsed = await exifr.parse(buffer, {
+      gps: true,
+      tiff: true,
+      xmp: true,
+      iptc: true,
+      jfif: true,
+      icc: false,
+    });
+    if (parsed) {
+      if (parsed.latitude && parsed.longitude && !isNaN(parsed.latitude) && !isNaN(parsed.longitude)) {
+        gps = gps || {
+          latitude: parsed.latitude,
+          longitude: parsed.longitude,
+          locationName: 'Extracted from EXIF / QuickTime container',
+        };
+        rawTags['EXIF:GPSLatitude'] = String(parsed.latitude);
+        rawTags['EXIF:GPSLongitude'] = String(parsed.longitude);
+      }
+      if (parsed.Make || parsed.Model) {
+        deviceModel = deviceModel || [parsed.Make, parsed.Model].filter(Boolean).join(' ');
+        rawTags['EXIF:DeviceModel'] = [parsed.Make, parsed.Model].filter(Boolean).join(' ');
+      }
+      if (parsed.DateTimeOriginal || parsed.CreateDate) {
+        creationTime = creationTime || String(parsed.DateTimeOriginal || parsed.CreateDate);
+        rawTags['EXIF:CreationTime'] = String(parsed.DateTimeOriginal || parsed.CreateDate);
+      }
+      if (parsed.Software) {
+        rawTags['EXIF:Software'] = String(parsed.Software);
+      }
+    }
+  } catch {
+    // Non-fatal fallback
+  }
+
+  // 2. Deep ISO box parsing via mp4box
+  try {
+    const mp4boxfile = createFile();
+    mp4boxfile.onReady = (info: any) => {
+      if (info.created && !creationTime) {
+        creationTime = String(info.created);
+        rawTags['MP4:CreationTime'] = String(info.created);
+      }
+      if (info.tracks && info.tracks.length > 0) {
+        rawTags['MP4:TrackCount'] = String(info.tracks.length);
+        const codecs = info.tracks.map((t: any) => t.codec).filter(Boolean).join(', ');
+        if (codecs) rawTags['MP4:Codecs'] = codecs;
+      }
+    };
+    mp4boxfile.onError = () => {};
+
+    const sliceLen = Math.min(buffer.byteLength, 4 * 1024 * 1024);
+    const sliceBuf = buffer.slice(0, sliceLen);
+    (sliceBuf as any).fileStart = 0;
+    mp4boxfile.appendBuffer(sliceBuf as any);
+    mp4boxfile.flush();
+  } catch {
+    // Non-fatal fallback
+  }
+
+  // Rebuild findings if new GPS or device was uncovered
+  const findings: Finding[] = [];
+  if (gps) {
+    findings.push({
+      id: 'metadata-gps-location',
+      category: 'metadata',
+      title: 'GPS Coordinates Embedded in File',
+      plainText: `Exact geographic coordinates found in container: ${gps.latitude.toFixed(4)}° N, ${gps.longitude.toFixed(4)}° E. Anyone downloading this file can see your physical location.`,
+      severity: 'critical',
+      confidence: 1.0,
+      evidenceKind: 'Measured',
+      details: {
+        latitude: gps.latitude,
+        longitude: gps.longitude,
+        locationName: gps.locationName || 'Extracted from QuickTime / EXIF Atom',
+        deviceModel: deviceModel || 'Embedded in file headers',
+      },
+      fixable: true,
+      fixDescription: 'Strip container metadata and re-encode clean file streams.',
+    });
+  } else {
+    findings.push({
+      id: 'metadata-clean-notice',
+      category: 'metadata',
+      title: 'No Embedded Geolocation Metadata Found',
+      plainText: 'Container headers contain no GPS pins. Note: messaging apps (WhatsApp, Instagram, Telegram) routinely strip metadata on upload.',
+      severity: 'info',
+      confidence: 0.95,
+      evidenceKind: 'Measured',
+      details: {
+        fileName,
+        containerTagsFound: Object.keys(rawTags).length,
+      },
+    });
+  }
+
+  const report: MetadataReport = {
+    gps,
+    creationTime,
+    deviceModel,
+    rawTags,
+    isDemo: false,
+  };
+
+  return { report, findings };
+}
 
 /**
  * Parses MP4/MOV atoms or JPEG EXIF buffer for geolocation and camera metadata.

@@ -1,5 +1,6 @@
 import { Finding } from '../types';
 import { FFT, hannWindow } from '../dsp/fft';
+import Meyda from 'meyda';
 
 export interface SoundSceneResult {
   topScene: string;
@@ -44,11 +45,37 @@ export function extractAcousticFeatures(samples: Float32Array, sampleRate: numbe
     return { centroidHz: 800, rolloffHz: 2500, zcr: 0.05, lowRatio: 0.35 };
   }
 
+  try {
+    Meyda.sampleRate = sampleRate;
+    Meyda.bufferSize = fftSize;
+  } catch {
+    // Non-fatal
+  }
+
   for (let offset = 0; offset + fftSize <= samples.length; offset += step) {
     for (let i = 0; i < fftSize; i++) {
       rBuf[i] = samples[offset + i] * win[i];
       iBuf[i] = 0;
     }
+
+    // Try Meyda feature extraction
+    let meydaHandled = false;
+    try {
+      const feat = Meyda.extract(['spectralCentroid', 'spectralRolloff'], rBuf) as any;
+      if (feat && typeof feat.spectralCentroid === 'number' && typeof feat.spectralRolloff === 'number') {
+        const cHz = feat.spectralCentroid * binWidth;
+        const rHz = feat.spectralRolloff;
+        if (!isNaN(cHz) && !isNaN(rHz) && cHz > 0) {
+          totalCentroidSum += cHz;
+          totalRolloffSum += rHz;
+          framesProcessed++;
+          meydaHandled = true;
+        }
+      }
+    } catch {
+      // Fall through to native DSP
+    }
+
     fft.transform(rBuf, iBuf);
     const mag = fft.magnitudeSpectrum(rBuf, iBuf);
 
@@ -63,7 +90,7 @@ export function extractAcousticFeatures(samples: Float32Array, sampleRate: numbe
       totalEnergy += m * m;
     }
 
-    if (sumMag > 1e-6) {
+    if (!meydaHandled && sumMag > 1e-6) {
       totalCentroidSum += weightedFreq / sumMag;
       const targetEnergy = sumMag * 0.85;
       let accum = 0;

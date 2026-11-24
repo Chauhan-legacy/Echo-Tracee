@@ -1,47 +1,27 @@
+import FFT from 'fft.js';
+
 /**
  * ECHO//TRACE Fast Mathematical Core (M1)
- * Split-radix real-valued FFT with cached twiddle factors.
+ * Radix-4 Real-valued FFT engine (powered by fft.js with zero heap allocations during transforms).
  * Includes slow reference naive DFT for exact mathematical cross-checking.
  */
 
 export class SplitRadixRealFFT {
   public readonly n: number;
-  private readonly cosTable: Float64Array;
-  private readonly sinTable: Float64Array;
-  private readonly bitRev: Uint32Array;
+  private readonly fftCore: FFT;
+  private readonly complexOut: Float64Array;
 
   constructor(size: number) {
     if ((size & (size - 1)) !== 0 || size < 8) {
       throw new Error(`FFT size must be a power of 2 (>= 8), received ${size}`);
     }
     this.n = size;
-
-    // Precompute twiddle factor tables
-    const n = this.n;
-    this.cosTable = new Float64Array(n);
-    this.sinTable = new Float64Array(n);
-    for (let i = 0; i < n; i++) {
-      const angle = (-2.0 * Math.PI * i) / n;
-      this.cosTable[i] = Math.cos(angle);
-      this.sinTable[i] = Math.sin(angle);
-    }
-
-    // Precompute bit reversal permutation
-    this.bitRev = new Uint32Array(n);
-    const levels = Math.round(Math.log2(n));
-    for (let i = 0; i < n; i++) {
-      let rev = 0;
-      let temp = i;
-      for (let j = 0; j < levels; j++) {
-        rev = (rev << 1) | (temp & 1);
-        temp >>= 1;
-      }
-      this.bitRev[i] = rev;
-    }
+    this.fftCore = new FFT(size);
+    this.complexOut = new Float64Array(size * 2);
   }
 
   /**
-   * Split-Radix real-to-complex FFT transform.
+   * Real-to-complex FFT transform.
    * Takes real input samples of length N and fills realOut & imagOut (length N/2 + 1).
    */
   public transformReal(
@@ -50,46 +30,12 @@ export class SplitRadixRealFFT {
     imagOut: Float32Array | Float64Array
   ): void {
     const n = this.n;
-    const rBuf = new Float64Array(n);
-    const iBuf = new Float64Array(n);
-
-    // Bit-reversed loading
-    for (let i = 0; i < n; i++) {
-      rBuf[this.bitRev[i]] = input[i] || 0.0;
-      iBuf[i] = 0.0;
-    }
-
-    // Split-radix / Cooley-Tukey hierarchical stages
-    for (let len = 2; len <= n; len <<= 1) {
-      const halfLen = len >> 1;
-      const step = n / len;
-      for (let i = 0; i < n; i += len) {
-        let k = 0;
-        for (let j = 0; j < halfLen; j++) {
-          const c = this.cosTable[k];
-          const s = this.sinTable[k];
-
-          const tR = rBuf[i + j + halfLen] * c - iBuf[i + j + halfLen] * s;
-          const tI = rBuf[i + j + halfLen] * s + iBuf[i + j + halfLen] * c;
-
-          const uR = rBuf[i + j];
-          const uI = iBuf[i + j];
-
-          rBuf[i + j] = uR + tR;
-          iBuf[i + j] = uI + tI;
-          rBuf[i + j + halfLen] = uR - tR;
-          iBuf[i + j + halfLen] = uI - tI;
-
-          k += step;
-        }
-      }
-    }
-
-    // Extract conjugate symmetric half-spectrum [0 .. N/2]
+    this.fftCore.realTransform(this.complexOut, input as unknown as number[]);
     const half = n / 2;
     for (let i = 0; i <= half; i++) {
-      realOut[i] = rBuf[i];
-      imagOut[i] = iBuf[i];
+      const idx = i * 2;
+      realOut[i] = this.complexOut[idx];
+      imagOut[i] = this.complexOut[idx + 1];
     }
   }
 

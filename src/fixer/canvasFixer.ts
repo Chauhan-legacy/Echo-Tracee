@@ -4,6 +4,7 @@
  * Calculates SSIM in the bounding box to mathematically prove SSIM < 0.2 vs original.
  */
 import { VisualFindingBox } from '../types';
+import { ssim as computeSsimJs } from 'ssim.js';
 
 /**
  * Computes Structural Similarity Index (SSIM) between two image regions.
@@ -116,8 +117,21 @@ export function irreversibleMaskCanvasRegion(
 
   ctx.putImageData(imgData, clampX, clampY);
 
-  // Measure SSIM vs original in the sanitized box
-  const ssim = computeRegionSSIM(origCopy, data);
+  // Measure SSIM vs original in the sanitized box using ssim.js (with internal fallback)
+  let ssim = 0.0;
+  try {
+    if (clampW >= 8 && clampH >= 8) {
+      const ssimResult = computeSsimJs(
+        { data: origCopy, width: clampW, height: clampH },
+        { data, width: clampW, height: clampH }
+      );
+      ssim = Math.max(0.0, Math.min(1.0, ssimResult.mssim));
+    } else {
+      ssim = computeRegionSSIM(origCopy, data);
+    }
+  } catch {
+    ssim = computeRegionSSIM(origCopy, data);
+  }
 
   // Forensic border and tamper-evident badge
   ctx.strokeStyle = '#174D35';

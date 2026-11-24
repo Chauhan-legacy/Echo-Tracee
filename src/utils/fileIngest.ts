@@ -1,4 +1,4 @@
-import { parseMetadataFromBuffer } from '../analyzers/metadata';
+import { parseMetadataFromBuffer, parseMetadataAsync } from '../analyzers/metadata';
 import { computeSha256 } from '../demo/incident001';
 import { MetadataReport } from '../types';
 
@@ -32,8 +32,8 @@ export async function ingestUserFile(file: File): Promise<IngestedMedia> {
   const fileBuffer = await file.arrayBuffer();
   const sha256 = await computeSha256(fileBuffer.slice(0, 1024 * 1024 * 4));
 
-  // 3. Parse container metadata (QuickTime atoms / EXIF)
-  const metaResult = parseMetadataFromBuffer(fileBuffer, file.name);
+  // 3. Parse container metadata (QuickTime atoms / EXIF via exifr & mp4box)
+  const metaResult = await parseMetadataAsync(fileBuffer, file.name);
 
   const ext = file.name.split('.').pop()?.toLowerCase() || '';
   const isImage = file.type.startsWith('image/') || ext === 'jpg' || ext === 'jpeg';
