@@ -15,11 +15,28 @@ export default {
           sunken: '#DCCFB2',  // recessed wells & inputs
           hairline: '#C9BB9A',// fine borders & gridlines
         },
+        // Flat aliases for backwards compatibility and clean classes
+        card: '#F3EBD8',
+        page: '#E8DCC3',
+        sunken: '#DCCFB2',
+        hairline: '#C9BB9A',
+        ink: '#10291D',
+        muted: '#1D4A34',     // high-contrast forest ink
         forest: {
           DEFAULT: '#174D35', // structural forest (30%)
           deep: '#0B281B',    // data panels & spectrogram background
           ink: '#10291D',     // high-contrast primary text
-          muted: '#3F5E4C',   // secondary labels & captions
+          muted: '#1D4A34',   // secondary labels & captions (darkened for AA/AAA contrast)
+        },
+        // Legacy terminal compatibility fallbacks
+        'term-border': '#C9BB9A',
+        'term-card': '#F3EBD8',
+        'term-bg': '#E8DCC3',
+        'term-dim': '#1D4A34',
+        'term-hover': '#DCCFB2',
+        cyan: {
+          DEFAULT: '#174D35',
+          400: '#174D35',
         },
         lime: {
           DEFAULT: '#8BCF55', // accent (10%) - fill only with forest text, or on forest

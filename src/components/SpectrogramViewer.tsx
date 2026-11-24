@@ -2,10 +2,11 @@
  * Copyright 2026 Priyansh Chauhan
  * SPDX-License-Identifier: Apache-2.0
  */
-import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { Volume2, Crosshair, SplitSquareHorizontal, Eye, AlertTriangle } from 'lucide-react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { Volume2, Crosshair, SplitSquareHorizontal, Eye, AlertTriangle, Play, Pause, RotateCcw } from 'lucide-react';
 import { computeRealSpectrogram } from '../dsp/spectrogram';
 import { getV3ColormapRgb } from './MiniLiveSpectrogram';
+import { createWavBlob } from '../utils/wavHelper';
 
 interface SpectrogramViewerProps {
   channelData: Float32Array | null;
@@ -33,6 +34,9 @@ export const SpectrogramViewer: React.FC<SpectrogramViewerProps> = ({
   currentTime = 0,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackTime, setPlaybackTime] = useState(0);
   const [hoverInfo, setHoverInfo] = useState<{ freq: number; time: number } | null>(null);
   const [sweepProgress, setSweepProgress] = useState(0);
   const [scale, setScale] = useState<FrequencyScale>('linear');
@@ -56,6 +60,44 @@ export const SpectrogramViewer: React.FC<SpectrogramViewerProps> = ({
   }, [cleanChannelData, sampleRate, numCols, numRows]);
 
   const duration = beforeSpec?.duration || 15.0;
+
+  // Audio Blob URL created from decoded Float32Array PCM samples
+  const audioUrl = useMemo(() => {
+    if (!channelData || channelData.length === 0) return null;
+    const blob = createWavBlob(channelData, sampleRate);
+    return URL.createObjectURL(blob);
+  }, [channelData, sampleRate]);
+
+  useEffect(() => {
+    return () => {
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+    };
+  }, [audioUrl]);
+
+  const effectiveCurrentTime = currentTime > 0 ? currentTime : playbackTime;
+
+  const togglePlayPause = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (isPlaying) {
+      audio.pause();
+    } else {
+      audio.play().catch(() => {});
+    }
+  }, [isPlaying]);
+
+  const handleSeek = (newTime: number) => {
+    const audio = audioRef.current;
+    const clamped = Math.max(0, Math.min(duration, newTime));
+    setPlaybackTime(clamped);
+    if (audio) {
+      audio.currentTime = clamped;
+    }
+  };
+
+  const handleRestart = () => {
+    handleSeek(0);
+  };
 
   // Sweep animation during analysis
   useEffect(() => {
@@ -202,15 +244,22 @@ export const SpectrogramViewer: React.FC<SpectrogramViewerProps> = ({
     }
 
     // 3. Playhead Sync Line
-    if (currentTime > 0 && duration > 0) {
-      const playheadX = Math.floor((currentTime / duration) * w);
+    if (effectiveCurrentTime > 0 && duration > 0) {
+      const playheadX = Math.floor((effectiveCurrentTime / duration) * w);
       if (playheadX >= 0 && playheadX <= w) {
         ctx.strokeStyle = '#8BCF55';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2.5;
         ctx.beginPath();
         ctx.moveTo(playheadX, 0);
         ctx.lineTo(playheadX, h);
         ctx.stroke();
+
+        // Draw playhead timestamp badge at top of line
+        ctx.fillStyle = '#8BCF55';
+        ctx.fillRect(Math.max(0, Math.min(w - 48, playheadX - 24)), 2, 48, 16);
+        ctx.fillStyle = '#10291D';
+        ctx.font = 'bold 9px "JetBrains Mono", monospace';
+        ctx.fillText(`${effectiveCurrentTime.toFixed(1)}s`, Math.max(4, Math.min(w - 44, playheadX - 18)), 13);
       }
     }
 
@@ -302,19 +351,21 @@ export const SpectrogramViewer: React.FC<SpectrogramViewerProps> = ({
     numRows,
     hoveredFindingId,
     scale,
-    currentTime,
+    effectiveCurrentTime,
   ]);
 
-  // Pointer Handlers
+  // Pointer Handlers: Drag split in Fixed mode, or Seek audio on canvas click
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!isFixed || !afterSpec) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    if (Math.abs(x - splitPos) < 0.08) {
+    const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+
+    if (isFixed && afterSpec && Math.abs(x - splitPos) < 0.08) {
       setIsDragging(true);
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } else {
+      handleSeek(x * duration);
     }
   };
 
@@ -431,6 +482,78 @@ export const SpectrogramViewer: React.FC<SpectrogramViewerProps> = ({
           <span>Suspicious acoustic beacon / grid hum anomaly</span>
         </div>
       </div>
+
+      {/* Integrated Audio Playback & Scrubbing Toolbar */}
+      {audioUrl && (
+        <div className="mt-3.5 pt-3 border-t border-forest/40 flex flex-wrap items-center justify-between gap-3">
+          <audio
+            ref={audioRef}
+            src={audioUrl}
+            onTimeUpdate={() => audioRef.current && setPlaybackTime(audioRef.current.currentTime)}
+            onEnded={() => {
+              setIsPlaying(false);
+              setPlaybackTime(0);
+            }}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            className="hidden"
+          />
+
+          {/* Left Controls: Play/Pause, Rewind, Time Readout */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={togglePlayPause}
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-lime text-forest font-bold hover:bg-lime-bright active:scale-95 transition shadow-sm"
+              title={isPlaying ? 'Pause audio' : 'Play audio recording'}
+            >
+              {isPlaying ? (
+                <Pause className="h-5 w-5 fill-forest" />
+              ) : (
+                <Play className="h-5 w-5 fill-forest ml-0.5" />
+              )}
+            </button>
+
+            <button
+              onClick={handleRestart}
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-forest/40 border border-forest/60 text-cream hover:bg-forest/60 active:scale-95 transition"
+              title="Restart from beginning"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </button>
+
+            <div className="font-mono text-xs sm:text-sm font-bold text-cream pl-1">
+              <span>
+                {Math.floor(effectiveCurrentTime / 60)}:
+                {(effectiveCurrentTime % 60).toFixed(1).padStart(4, '0')}
+              </span>
+              <span className="text-cream/40 px-1">/</span>
+              <span className="text-cream/70">
+                {Math.floor(duration / 60)}:
+                {(duration % 60).toFixed(1).padStart(4, '0')}
+              </span>
+            </div>
+          </div>
+
+          {/* Center: Interactive Scrubber Slider */}
+          <div className="flex-1 min-w-[140px] max-w-md flex items-center gap-2">
+            <input
+              type="range"
+              min={0}
+              max={duration || 1}
+              step={0.05}
+              value={effectiveCurrentTime}
+              onChange={e => handleSeek(Number(e.target.value))}
+              className="w-full h-2 bg-forest/60 rounded-lg appearance-none cursor-pointer accent-[#8BCF55]"
+            />
+          </div>
+
+          {/* Right Status Badge */}
+          <div className="hidden sm:flex items-center gap-2 font-mono text-[11px] text-cream/70 bg-forest/30 border border-forest/50 px-2.5 py-1.5 rounded-lg">
+            <span className="h-2 w-2 rounded-full bg-lime animate-pulse" />
+            <span>Real Audio: {sampleRate.toLocaleString()} Hz</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
