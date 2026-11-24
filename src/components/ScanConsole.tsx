@@ -105,6 +105,7 @@ export const ScanConsole: React.FC<ScanConsoleProps> = ({
                   <Sparkles className="h-4 w-4 text-forest shrink-0" />
                   <span className="font-display text-sm sm:text-base font-bold text-forest leading-snug">
                     Load INCIDENT-001
+                    <span className="ml-1.5 rounded bg-forest/20 text-forest px-1 py-0.2 text-[9px] font-bold">DEMO</span>
                   </span>
                 </div>
                 <span className="mt-0.5 text-[11px] sm:text-xs text-forest/80 font-medium">

@@ -47,6 +47,11 @@ export const DesktopTopBar: React.FC<DesktopTopBarProps> = ({
           <div className="hidden xl:flex items-center gap-2 rounded-xl border border-beige-hairline bg-beige-sunken/60 px-3 py-1 font-mono text-xs text-forest-ink">
             <span className="font-bold text-forest">CASE:</span>
             <span className="font-semibold">{scanResult?.isDemo ? 'INCIDENT-001' : 'INSPECT-01'}</span>
+            {scanResult?.isDemo && (
+              <span className="rounded bg-ochre/20 text-ochre px-1.5 py-0.5 text-[10px] font-bold">
+                DEMO DATA
+              </span>
+            )}
             <span className="text-forest-muted">|</span>
             <span className="text-forest-muted truncate max-w-[140px]">{fileName}</span>
             <span className="text-forest-muted">|</span>

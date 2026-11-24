@@ -41,17 +41,8 @@ export interface FeatureVectorFrame {
   opticalModulationNorm: number;  // 0..1
 }
 
-// ---------------------------------------------------------------------------
-// Math Primitives & Activations
-// ---------------------------------------------------------------------------
-
-function gelu(x: number): number {
-  return 0.5 * x * (1.0 + Math.tanh(0.7978845608 * (x + 0.044715 * x * x * x)));
-}
-
-function sigmoid(x: number): number {
-  return 1.0 / (1.0 + Math.exp(-Math.max(-15.0, Math.min(15.0, x))));
-}
+import { gelu, sigmoid } from '../../packages/echotrace-math/src/numerics/activations';
+import { ForensicDetectorNetwork } from '../../packages/echotrace-math/src/ml/network';
 
 function layerNorm(vec: Float32Array): Float32Array {
   const n = vec.length;

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { Volume2, Crosshair, SplitSquareHorizontal } from 'lucide-react';
+import { Volume2, Crosshair, SplitSquareHorizontal, Eye, AlertTriangle } from 'lucide-react';
 import { computeRealSpectrogram } from '../dsp/spectrogram';
 import { getV3ColormapRgb } from './MiniLiveSpectrogram';
 
@@ -12,7 +12,10 @@ interface SpectrogramViewerProps {
   isFixed?: boolean;
   hoveredFindingId?: string | null;
   onHoverFinding?: (id: string | null) => void;
+  currentTime?: number;
 }
+
+export type FrequencyScale = 'linear' | 'log' | 'mel';
 
 export const SpectrogramViewer: React.FC<SpectrogramViewerProps> = ({
   channelData,
@@ -23,10 +26,12 @@ export const SpectrogramViewer: React.FC<SpectrogramViewerProps> = ({
   isFixed = false,
   hoveredFindingId = null,
   onHoverFinding,
+  currentTime = 0,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [hoverInfo, setHoverInfo] = useState<{ freq: number; time: number } | null>(null);
   const [sweepProgress, setSweepProgress] = useState(0);
+  const [scale, setScale] = useState<FrequencyScale>('linear');
 
   // Draggable split position (0.0 to 1.0, default 0.5)
   const [splitPos, setSplitPos] = useState(0.5);
@@ -72,7 +77,39 @@ export const SpectrogramViewer: React.FC<SpectrogramViewerProps> = ({
     return () => cancelAnimationFrame(animId);
   }, [isScanning]);
 
-  // Canvas rendering with custom monotone-lightness colormap & noise floor subtraction
+  // Frequency mapping functions
+  const mapYToFreq = (yNorm: number, nyquist: number): number => {
+    // yNorm: 0 at top (high freq), 1 at bottom (low freq)
+    const inv = 1 - yNorm;
+    if (scale === 'linear') {
+      return inv * nyquist;
+    } else if (scale === 'log') {
+      const minF = 20;
+      return minF * Math.pow(nyquist / minF, inv);
+    } else {
+      // Mel scale: m = 2595 * log10(1 + f / 700)
+      const maxMel = 2595 * Math.log10(1 + nyquist / 700);
+      const mel = inv * maxMel;
+      return 700 * (Math.pow(10, mel / 2595) - 1);
+    }
+  };
+
+  const mapFreqToY = (f: number, nyquist: number): number => {
+    let inv = 0;
+    if (scale === 'linear') {
+      inv = f / nyquist;
+    } else if (scale === 'log') {
+      const minF = 20;
+      inv = Math.max(0, Math.log(Math.max(minF, f) / minF) / Math.log(nyquist / minF));
+    } else {
+      const maxMel = 2595 * Math.log10(1 + nyquist / 700);
+      const mel = 2595 * Math.log10(1 + Math.max(0, f) / 700);
+      inv = mel / maxMel;
+    }
+    return 1 - Math.max(0, Math.min(1, inv));
+  };
+
+  // Canvas rendering
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -144,23 +181,36 @@ export const SpectrogramViewer: React.FC<SpectrogramViewerProps> = ({
 
     ctx.putImageData(imgData, 0, 0);
 
-    // 2. Ultrasonic Band Shading (17-22 kHz)
+    // 2. Ultrasonic Band Shading (17-22 kHz) with cross-hatch pattern for color-blind safety
     const nyquist = sampleRate / 2;
     if (nyquist >= 17000) {
-      const yTop = Math.max(0, (1 - Math.min(22000, nyquist) / nyquist) * h);
-      const yBottom = Math.max(0, (1 - 17000 / nyquist) * h);
+      const yTop = mapFreqToY(Math.min(22000, nyquist), nyquist) * h;
+      const yBottom = mapFreqToY(17000, nyquist) * h;
       if (yBottom > yTop) {
-        ctx.fillStyle = 'rgba(163, 42, 31, 0.08)';
+        ctx.fillStyle = 'rgba(163, 42, 31, 0.12)';
         ctx.fillRect(0, yTop, w, yBottom - yTop);
-        ctx.strokeStyle = 'rgba(163, 42, 31, 0.25)';
+        ctx.strokeStyle = '#A32A1F';
         ctx.lineWidth = 1;
-        ctx.setLineDash([2, 4]);
+        ctx.setLineDash([4, 4]);
         ctx.strokeRect(0, yTop, w, yBottom - yTop);
         ctx.setLineDash([]);
       }
     }
 
-    // 3. Draggable Split Divider Line & Handle (if in Fixed mode)
+    // 3. Playhead Sync Line
+    if (currentTime > 0 && duration > 0) {
+      const playheadX = Math.floor((currentTime / duration) * w);
+      if (playheadX >= 0 && playheadX <= w) {
+        ctx.strokeStyle = '#8BCF55';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(playheadX, 0);
+        ctx.lineTo(playheadX, h);
+        ctx.stroke();
+      }
+    }
+
+    // 4. Draggable Split Divider Line & Handle (if in Fixed mode)
     if (isFixed && afterSpec) {
       const sx = splitCol;
       ctx.strokeStyle = '#8BCF55';
@@ -170,13 +220,12 @@ export const SpectrogramViewer: React.FC<SpectrogramViewerProps> = ({
       ctx.lineTo(sx, h);
       ctx.stroke();
 
-      // Handle circle
       ctx.fillStyle = '#8BCF55';
       ctx.beginPath();
       ctx.arc(sx, h / 2, 9, 0, Math.PI * 2);
       ctx.fill();
 
-      // Badges: "ORIGINAL (LEAKS)" vs "SANITIZED (CLEAN)"
+      // Badges
       ctx.fillStyle = '#FAF5EB';
       ctx.fillRect(12, 12, 140, 24);
       ctx.strokeStyle = '#A32A1F';
@@ -194,16 +243,15 @@ export const SpectrogramViewer: React.FC<SpectrogramViewerProps> = ({
       ctx.fillText('SANITIZED (CLEAN) ►', w - 146, 28);
     }
 
-    // 4. Dynamic Frequency Marker Chips: Cream chips with brick/ochre borders
+    // 5. Dynamic Frequency Marker Chips with Warning Red Outlines
     for (const hf of highlightFreqs) {
-      const yNorm = 1 - hf.freq / nyquist;
+      const yNorm = mapFreqToY(hf.freq, nyquist);
       const y = yNorm * h;
+
       if (y >= 0 && y <= h) {
         const endX = isFixed && afterSpec ? splitCol : w;
         const isHovered = hoveredFindingId && hf.findingId === hoveredFindingId;
-        const borderColor = hf.color.includes('brick') || hf.color.includes('A32A1F') || hf.color.includes('red')
-          ? '#A32A1F'
-          : '#7A4E00';
+        const borderColor = '#A32A1F'; // Brick red for leaks
 
         // Leader line
         ctx.strokeStyle = borderColor;
@@ -215,32 +263,45 @@ export const SpectrogramViewer: React.FC<SpectrogramViewerProps> = ({
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Frequency target anchor point
+        // Anchor
         ctx.fillStyle = borderColor;
         ctx.beginPath();
         ctx.arc(16, y, isHovered ? 5 : 3.5, 0, Math.PI * 2);
         ctx.fill();
 
-        // Cream chip with brick/ochre border (V3 rule)
+        // Chip
         const labelText = hf.label;
         const pillWidth = Math.max(135, labelText.length * 7.5 + 24);
         const pillX = Math.max(12, endX - pillWidth - 12);
         const pillY = Math.max(8, Math.min(h - 28, y - 13));
 
-        ctx.fillStyle = '#FAF5EB'; // Cream fill
+        ctx.fillStyle = '#FAF5EB';
         ctx.fillRect(pillX, pillY, pillWidth, 24);
-        ctx.strokeStyle = borderColor; // Brick or Ochre border
+        ctx.strokeStyle = borderColor;
         ctx.lineWidth = isHovered ? 2.5 : 1.5;
         ctx.strokeRect(pillX, pillY, pillWidth, 24);
 
-        ctx.fillStyle = '#10291D'; // Ink text
+        ctx.fillStyle = '#10291D';
         ctx.font = 'bold 11px "JetBrains Mono", monospace';
         ctx.fillText(labelText, pillX + 8, pillY + 16);
       }
     }
-  }, [beforeSpec, afterSpec, sweepProgress, splitPos, isFixed, highlightFreqs, sampleRate, numCols, numRows, hoveredFindingId]);
+  }, [
+    beforeSpec,
+    afterSpec,
+    sweepProgress,
+    splitPos,
+    isFixed,
+    highlightFreqs,
+    sampleRate,
+    numCols,
+    numRows,
+    hoveredFindingId,
+    scale,
+    currentTime,
+  ]);
 
-  // Mouse / Touch handlers for split-slider dragging and frequency inspection
+  // Pointer Handlers
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isFixed || !afterSpec) return;
     const canvas = canvasRef.current;
@@ -265,15 +326,12 @@ export const SpectrogramViewer: React.FC<SpectrogramViewerProps> = ({
 
     const nyquist = sampleRate / 2;
     const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-    const freq = Math.round((1 - y) * nyquist);
+    const freq = Math.round(mapYToFreq(y, nyquist));
     const time = Number((x * duration).toFixed(2));
     setHoverInfo({ freq, time });
   };
 
-  const handlePointerUp = () => {
-    setIsDragging(false);
-  };
-
+  const handlePointerUp = () => setIsDragging(false);
   const handlePointerLeave = () => {
     setIsDragging(false);
     setHoverInfo(null);
@@ -293,6 +351,21 @@ export const SpectrogramViewer: React.FC<SpectrogramViewerProps> = ({
           </span>
         </div>
 
+        {/* Scale Switch (Linear / Log / Mel) */}
+        <div className="flex items-center gap-1 rounded-xl bg-forest/40 border border-forest/60 p-0.5 font-mono text-[10px]">
+          {(['linear', 'log', 'mel'] as FrequencyScale[]).map(s => (
+            <button
+              key={s}
+              onClick={() => setScale(s)}
+              className={`px-2 py-0.5 rounded-lg font-bold uppercase transition ${
+                scale === s ? 'bg-lime text-forest-ink shadow-sm' : 'text-cream/70 hover:text-cream'
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+
         {isFixed && afterSpec && (
           <div className="flex items-center gap-1.5 text-xs font-mono text-lime font-bold">
             <SplitSquareHorizontal className="h-4 w-4 text-lime" />
@@ -310,27 +383,49 @@ export const SpectrogramViewer: React.FC<SpectrogramViewerProps> = ({
         )}
       </div>
 
-      {/* Canvas Area */}
-      <div className="relative aspect-[16/8] w-full rounded-xl overflow-hidden border border-forest/40 bg-forest-deep cursor-crosshair">
-        <canvas
-          ref={canvasRef}
-          width={720}
-          height={320}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerLeave={handlePointerLeave}
-          className="h-full w-full object-fill touch-none"
-        />
+      {/* Main Spectrogram with Color Bar */}
+      <div className="flex items-stretch gap-2.5">
+        <div className="relative aspect-[16/8] flex-1 rounded-xl overflow-hidden border border-forest/40 bg-forest-deep cursor-crosshair">
+          <canvas
+            ref={canvasRef}
+            width={720}
+            height={320}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerLeave={handlePointerLeave}
+            className="h-full w-full object-fill touch-none"
+          />
+        </div>
+
+        {/* Vertical dB Colormap Legend */}
+        <div className="flex flex-col items-center justify-between py-1 text-[9px] font-mono text-cream/70 shrink-0">
+          <span>0 dB</span>
+          <div
+            className="w-3 flex-1 my-1 rounded border border-forest/60"
+            style={{
+              background: 'linear-gradient(to bottom, #FAF5EB, #8BCF55, #174D35, #0B281B)',
+            }}
+          />
+          <span>-80 dB</span>
+        </div>
       </div>
 
-      {/* Frequency & Time Axis Labels */}
-      <div className="mt-2.5 flex justify-between text-xs font-mono text-cream/70">
-        <span>0.0s</span>
-        <span>{(duration * 0.25).toFixed(1)}s</span>
-        <span>{(duration * 0.5).toFixed(1)}s</span>
-        <span>{(duration * 0.75).toFixed(1)}s</span>
-        <span>{duration.toFixed(1)}s</span>
+      {/* Frequency & Time Axis Labels + Suspicious Legend */}
+      <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-cream/70">
+        <div className="flex items-center gap-4">
+          <span>0.0s</span>
+          <span>{(duration * 0.25).toFixed(1)}s</span>
+          <span>{(duration * 0.5).toFixed(1)}s</span>
+          <span>{(duration * 0.75).toFixed(1)}s</span>
+          <span>{duration.toFixed(1)}s</span>
+        </div>
+
+        <div className="flex items-center gap-2 text-[11px] text-cream/80">
+          <span className="inline-block h-2 w-2 rounded-full bg-brick animate-pulse" />
+          <span className="text-brick font-semibold">Red Overlay:</span>
+          <span>Suspicious acoustic beacon / grid hum anomaly</span>
+        </div>
       </div>
     </div>
   );
