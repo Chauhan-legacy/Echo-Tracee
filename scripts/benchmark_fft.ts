@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * FFT Benchmark: SplitRadixRealFFT vs. fft.js (Phase B)
  * Measures execution time over 10,000 transforms of size 1024, 2048, and 4096.
  */

@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import React, { useState, useEffect, useRef } from 'react';
 import { Volume2, VolumeX, Play, Square, Radio, AlertTriangle } from 'lucide-react';
 import { HeterodyneAudioPlayer } from '../audio/heterodynePlayer';

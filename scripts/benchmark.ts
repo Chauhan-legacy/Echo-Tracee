@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Empirical Benchmarking Suite for ECHO//TRACE and echotrace-math
  * Measures real execution latency and memory usage on the current host machine.
  */

@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Kaiser Window Linear-Phase FIR Low-Pass Filter & Audio Quality Metrics (S1)
  * Stopband attenuation >= 100 dB, cutoff at 16 kHz, with 32 kHz resampling (Nyquist guarantee).
  * Computes Log-Spectral Distance (LSD) and Segmental SNR (SSNR).

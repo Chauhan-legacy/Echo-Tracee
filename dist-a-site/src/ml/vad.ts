@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * ECHO//TRACE Client-Side Voice Activity Detector (VAD)
  * 100% in-browser, zero external downloads, sub-millisecond execution.
  *

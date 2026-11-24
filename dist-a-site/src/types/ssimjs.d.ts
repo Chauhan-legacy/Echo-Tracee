@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
 declare module 'ssim.js' {
   export interface SSIMOptions {
     windowSize?: number;

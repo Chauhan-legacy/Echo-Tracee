@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, ChevronDown, ChevronUp, HelpCircle, ArrowRight, Wrench } from 'lucide-react';
 import { LeakScoreResult, Finding } from '../types';

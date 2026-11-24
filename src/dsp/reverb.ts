@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import { Finding } from '../types';
 import { analyzeRoomAcousticsM4 } from './room/acoustics';
 

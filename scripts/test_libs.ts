@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import FFT from 'fft.js';
 import Meyda from 'meyda';
 import * as ssimModule from 'ssim.js';

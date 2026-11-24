@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Network Audit Logger
  * Intercepts all browser network operations (fetch, XHR, sendBeacon)
  * to prove cryptographically and empirically that zero user data leaves the device.

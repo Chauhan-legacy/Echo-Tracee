@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import React, { useState, useEffect, useRef } from 'react';
 import {
   X, Cpu, Activity, Radio, Eye, Lock, ShieldCheck, Zap,

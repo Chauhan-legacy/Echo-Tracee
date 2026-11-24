@@ -1,3 +1,4 @@
+# Copyright 2026 Priyansh Chauhan | SPDX-License-Identifier: Apache-2.0
 # scripts/make-zips.ps1 - Generates 6 Submission Tiers for Embarko Challenge & GitHub
 param(
     [string]$OutputDir = "release-zips"

@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Ultrasonic Data Carrier Demodulator (FSK / BPSK Acoustic Beacon Receiver)
  *
  * Commercial cross-device tracking networks (SilverPush, Shopkick, Google Nearby, Lisnr)

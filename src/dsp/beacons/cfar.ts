@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Neyman-Pearson CA-CFAR & OS-CFAR Ultrasonic Beacon Detector (M3)
  * Designed for Pfa = 1e-6 on Multitaper PSD.
  * Includes OOK demodulation, keying rate, FSK/chirp Hough detection,

@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import { describe, it, expect } from 'vitest';
 import { SplitRadixRealFFT, naiveDFT } from '../core/fft';
 import { generateDPSSTapers, computeMultitaperPSD, computeWelchPSD } from '../core/multitaper';

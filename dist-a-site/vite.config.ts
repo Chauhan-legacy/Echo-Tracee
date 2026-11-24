@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
@@ -10,6 +10,9 @@ export default defineConfig({
     alias: {
       'echotrace-math': path.resolve(__dirname, 'packages/echotrace-math/src/index.ts'),
     },
+  },
+  test: {
+    exclude: ['**/node_modules/**', '**/dist/**', '**/dist-a-site/**', '**/dist-b-library/**', '**/release-zips/**'],
   },
   build: {
     outDir: 'dist',

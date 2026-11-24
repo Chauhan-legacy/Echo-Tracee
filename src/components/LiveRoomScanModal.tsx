@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import React, { useState, useEffect, useRef } from 'react';
 import { Mic, X, Square, AlertCircle, CheckCircle2, Activity, Info, Volume2 } from 'lucide-react';
 import { IngestedMedia } from '../utils/fileIngest';

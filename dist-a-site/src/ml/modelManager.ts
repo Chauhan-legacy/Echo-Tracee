@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Model Manager & Lazy Loader (T1, T2, T3, T4)
  * Handles client-side lazy-loading, soft-failure offline fallbacks,
  * file-size accounting, and ensemble agreement arbitration.

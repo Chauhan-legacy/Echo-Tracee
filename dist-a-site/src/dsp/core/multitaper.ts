@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Discrete Prolate Spheroidal Sequences (DPSS) & Multitaper Spectral Analysis (M1)
  * Standard DPSS tapers (K=5, NW=3) for high-resolution, low-variance spectral density estimation.
  */

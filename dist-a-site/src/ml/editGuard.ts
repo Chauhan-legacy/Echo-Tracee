@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * EditGuard In-App Inference Engine (T3)
  * Evaluates audio change-points and ENF discontinuities using trained ML weights.
  */

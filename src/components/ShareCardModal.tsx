@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import React, { useEffect, useRef, useState } from 'react';
 import { Share2, Download, X, Check, Copy, Smartphone, Square, LayoutTemplate } from 'lucide-react';
 import QRCode from 'qrcode';

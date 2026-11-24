@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Merkle Tree Proof & Web Crypto ECDSA P-256 Signatures (S5)
  * Constructs per-second chunk Merkle trees for input and output streams.
  * Generates signed receipt.json, manifest of transformations, and cryptographic verification.

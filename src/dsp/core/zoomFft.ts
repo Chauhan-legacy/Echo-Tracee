@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Heterodyne Zoom FFT, Sliding Goertzel & Polyphase Decimation (M1)
  */
 import { SplitRadixRealFFT } from './fft';

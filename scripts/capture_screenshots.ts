@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Responsive Screenshot Capture Suite (Phase E & V3.1)
  * Uses Playwright via Node (TypeScript only, zero Python).
  * Captures clean, high-resolution forensic screenshots across responsive widths:

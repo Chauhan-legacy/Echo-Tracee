@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Automated Forensic Detector Parameter Tuning (Nelder-Mead & Grid Search)
  * Tunes detector settings on validation data only, locks them, and reports once on holdout test data.
  */

@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Remote Photoplethysmography (rPPG) Biometric Cardiac Pulse Extractor & Scrambler
  *
  * Microscopic capillary blood volume variations in human facial skin cause periodic

@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Streaming Work Pipeline & Job Queue Orchestrator (Bug 2 Fix)
  * Sized to hardwareConcurrency - 1. Uses transferable objects,
  * bounded queues, backpressure, 20s watchdogs, and full cancel/retry.

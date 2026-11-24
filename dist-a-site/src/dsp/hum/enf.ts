@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Electric Network Frequency (ENF) / Power Grid Hum Analysis (M2)
  * High-resolution ESPRIT estimation, harmonic consistency, Cramér-Rao 95% CI,
  * and Page's CUSUM edit detection.

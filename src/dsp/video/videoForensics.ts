@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Video Forensics Engine (M6)
  * Chi-square histogram cut detection with adaptive MAD threshold,
  * dHash / pHash perceptual hashing, block-matching motion vectors with RANSAC,

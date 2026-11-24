@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Metadata Byte Scanner & Verification (S3)
  * Byte-scans the output file buffer for GPS (ISO 6709), QuickTime keys, camera model strings, and timestamps.
  */

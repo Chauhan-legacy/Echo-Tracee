@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Ultrasonic Anti-Surveillance Jammer (Psychoacoustic Masking Shield)
  *
  * Generates band-limited ultrasonic noise dither (18.5 kHz - 21.5 kHz)

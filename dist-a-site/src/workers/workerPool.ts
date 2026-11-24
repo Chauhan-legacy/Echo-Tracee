@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * ECHO//TRACE Worker Pool Orchestrator (Phase 5)
  * Dynamically sizes a worker pool based on navigator.hardwareConcurrency (clamped to max 4).
  * Uses transferable ArrayBuffers to avoid copying heavy audio/image data.

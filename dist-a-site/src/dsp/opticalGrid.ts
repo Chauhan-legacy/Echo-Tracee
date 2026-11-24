@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Optical Rolling Shutter Mains Frequency Analyzer (Optical ENF)
  *
  * Indoor AC lighting flickers at twice the mains frequency (100 Hz on 50 Hz grids,

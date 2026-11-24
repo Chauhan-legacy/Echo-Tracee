@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * In-browser Video Re-encoder using HTML5 Canvas captureStream and MediaRecorder.
  * Strips all EXIF, QuickTime location atoms, and camera metadata.
  */

@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import { RandomForestClassifier } from 'ml-random-forest';
 
 const rf = new RandomForestClassifier({ nEstimators: 10, seed: 42 });

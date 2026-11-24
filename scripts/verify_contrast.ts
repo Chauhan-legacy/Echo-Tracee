@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * WCAG AA Contrast Verification Script
  * Validates that every text / background color pair used in ECHO//TRACE V3
  * satisfies WCAG AA (>= 4.5:1 for regular text, >= 3.0:1 for large/bold text).

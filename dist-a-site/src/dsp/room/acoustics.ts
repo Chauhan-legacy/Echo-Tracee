@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Room Acoustic Characterization (M4)
  * Lundeby truncation, Maximum-Likelihood / Schroeder backward integration,
  * octave-band T20/T30 (500 Hz - 4 kHz), EDT, C50, and bootstrap confidence intervals.

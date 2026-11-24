@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Cross-Checks & Reference Validation Script
  * Verifies mathematical parity and disagreement bounds across dual independent implementations.
  */

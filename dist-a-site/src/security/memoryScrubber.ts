@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Forensic RAM Zeroizer & Ephemerality Scrubber
  *
  * Browsers retain deallocated JavaScript ArrayBuffers in heap pages until overwritten.

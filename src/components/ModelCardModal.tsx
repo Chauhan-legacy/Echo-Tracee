@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import React from 'react';
 import { X, Cpu, AlertTriangle, ShieldCheck, CheckCircle2, FileText, ArrowUpRight } from 'lucide-react';
 import { MODEL_REGISTRY } from '../ml/modelManager';

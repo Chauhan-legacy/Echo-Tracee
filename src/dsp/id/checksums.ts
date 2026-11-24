@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Checksum & Mathematical Validation of Identifiers (M8)
  * Luhn (cards), Verhoeff (12-digit Aadhaar), Indian PAN, Indian Phone, Email, and URL.
  * Strictly requires mathematical checksum validity before flagging.

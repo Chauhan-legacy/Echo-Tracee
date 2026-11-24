@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Device-Persistent Cryptographic Key Manager (Phase A)
  * Generates an ECDSA P-256 keypair once and persists it in IndexedDB.
  * The private key is non-extractable by design.

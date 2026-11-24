@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Irreversible Anti-AI Voronoi Redactor
  *
  * Traditional Gaussian blur and mosaic pixelation retain spatial gradient cues

@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Higher-Order Spectral Analysis (HOSA): Bispectrum & Bicoherence Estimator
  *
  * Traditional Fourier Power Spectrum (|X(f)|^2) suppresses all phase information.

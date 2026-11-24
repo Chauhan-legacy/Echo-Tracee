@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Comprehensive Streaming RIFF/WAV Parser & 8-Stage Forensic Pipeline (Bug 3 Fix)
  * Zero external dependencies. Full support for PCM 8/16/24/32-bit,
  * IEEE Float 32/64-bit, WAVE_FORMAT_EXTENSIBLE, and odd-chunk alignment.

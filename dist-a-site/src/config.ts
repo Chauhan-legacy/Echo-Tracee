@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * ECHO//TRACE Configuration
  * Single source of truth for site URL and metadata
  */

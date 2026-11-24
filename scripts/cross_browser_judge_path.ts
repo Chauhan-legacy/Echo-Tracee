@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * V4 Cross-Browser Judge Path Hardening Test Suite
  * Tests Chromium (Pixel 7), WebKit (iPhone 14), and Firefox (390x844).
  * Runs the exact Judge Path:

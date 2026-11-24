@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Custom 1D Temporal Convolutional Network (TCN) + Multi-Head Self-Attention
  *
  * Implemented completely from scratch in TypeScript with zero external neural network libraries.

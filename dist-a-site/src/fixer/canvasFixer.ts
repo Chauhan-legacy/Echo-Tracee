@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Hardened Canvas Video Frame Sanitizer (S2)
  * Irreversible masking (large-block mosaic + additive noise + solid fill borders).
  * Calculates SSIM in the bounding box to mathematically prove SSIM < 0.2 vs original.

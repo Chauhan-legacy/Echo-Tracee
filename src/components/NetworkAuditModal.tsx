@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import React from 'react';
 import { ShieldCheck, X, CheckCircle, Lock, Database, ArrowUpRight } from 'lucide-react';
 import { getNetworkAuditLogs } from '../utils/networkAudit';

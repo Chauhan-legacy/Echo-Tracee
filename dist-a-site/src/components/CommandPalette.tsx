@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import React, { useState, useEffect } from 'react';
 import { Search, Sparkles, Upload, Wrench, Share2, ShieldCheck, Play, X, Compass, Activity } from 'lucide-react';
 import { ActiveTab } from './BottomTabBar';

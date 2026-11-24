@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { Volume2, Crosshair, SplitSquareHorizontal, Eye, AlertTriangle } from 'lucide-react';
 import { computeRealSpectrogram } from '../dsp/spectrogram';

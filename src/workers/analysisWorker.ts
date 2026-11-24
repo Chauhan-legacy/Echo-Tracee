@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * ECHO//TRACE Dedicated Analysis Web Worker
  * Executes heavy DSP and forensic computations off the main UI thread.
  */

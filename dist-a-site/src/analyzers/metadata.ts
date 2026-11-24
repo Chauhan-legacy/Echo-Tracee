@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import { MetadataReport, Finding } from '../types';
 import { APP_COPY } from '../constants/copy';
 import exifr from 'exifr';

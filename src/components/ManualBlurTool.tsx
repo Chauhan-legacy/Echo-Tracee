@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import React, { useRef, useState, useEffect } from 'react';
 import { EyeOff, Plus, Trash2, Check, X } from 'lucide-react';
 import { VisualFindingBox } from '../types';

@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Hardened Audio Sanitizer (S1)
  * Adaptive zero-phase IIR notch bank at estimated hum and harmonics,
  * linear-phase Kaiser FIR low-pass at 16 kHz (>= 100 dB stopband),

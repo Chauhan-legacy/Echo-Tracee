@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Benjamini-Hochberg False Discovery Rate (FDR) & Statistical Calibration (M7)
  */
 import { Finding, LeakScoreResult, ScoreContribution } from '../../types';

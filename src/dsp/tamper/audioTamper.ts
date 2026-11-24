@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Audio Tamper & Signal Integrity Forensics (M5)
  * Log-mel segment fingerprints, symmetric KL / Bhattacharyya distance,
  * spectral flux with Median+4*MAD, digital silence, clipping, and DC offset checks.

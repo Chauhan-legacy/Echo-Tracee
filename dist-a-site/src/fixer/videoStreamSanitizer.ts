@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Full-Stream Video Sanitizer & Multi-Frame Tracker (Bug 1 Fix)
  * Redacts EVERY frame using Kalman-stabilized bounding box tracking
  * and irreversible Voronoi cell decomposition.

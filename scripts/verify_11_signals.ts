@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Verification Script for 11 Ground-Truth Test Signals (Phase 6)
  * Generates all 11 synthetic signals and evaluates in-browser DSP math against physical truths.
  * Prints a clean Markdown table.

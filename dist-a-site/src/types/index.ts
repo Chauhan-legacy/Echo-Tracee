@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
 export type Severity = 'info' | 'warn' | 'critical';
 
 export type EvidenceKind = 'Measured' | 'Computed' | 'Inferred' | 'Unverified';

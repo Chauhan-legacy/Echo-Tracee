@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import React, { useEffect, useRef } from 'react';
 import { MapPin, Globe, Camera, Calendar, ShieldCheck } from 'lucide-react';
 import { MetadataReport } from '../types';

@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import { describe, it, expect } from 'vitest';
 import { analyzeRoomAcousticsM4, lundebyTruncation } from '../room/acoustics';
 import { analyzeAudioTamperM5 } from '../tamper/audioTamper';

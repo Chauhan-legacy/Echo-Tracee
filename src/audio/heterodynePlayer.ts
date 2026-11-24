@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Heterodyne Down-Conversion Audio Player (F1)
  * Takes inaudible ultrasonic acoustic beacon tones (e.g. 19.4 kHz, 18.9 kHz, 20.1 kHz)
  * and down-converts them to ~1.5 kHz using mathematical local oscillator mixing:

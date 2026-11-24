@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Forensic Noise-Floor-Matched Spectral Inpainting & Spectral Hole Detector (Bug 5 Fix)
  * Ensures sanitized audio does not leave an artificial, detectable null notch.
  */

@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import { parseMetadataFromBuffer, parseMetadataAsync } from '../analyzers/metadata';
 import { computeSha256 } from '../demo/incident001';
 import { MetadataReport } from '../types';

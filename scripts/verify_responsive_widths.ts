@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Verifies no horizontal scroll across all required phone viewports:
  * 320px, 360px, 375px, 390px, 414px, 430px, and Landscape 844x390.
  */

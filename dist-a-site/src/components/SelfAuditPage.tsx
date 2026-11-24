@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import React from 'react';
 import { ShieldCheck, CheckCircle2, AlertCircle, Info, ExternalLink } from 'lucide-react';
 

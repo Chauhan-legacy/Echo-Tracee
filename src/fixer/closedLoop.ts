@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Closed-Loop Verification Engine (S4)
  * Re-runs ALL mathematical analyzers on the sanitized media to evaluate explicit PASS/FAIL criteria.
  * Formulates plain-English residual risk statements.

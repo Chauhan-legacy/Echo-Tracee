@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * BeaconGuard In-App Inference Engine (T3)
  * Combines Neyman-Pearson CA-CFAR (Math) with calibrated Logistic Regression (ML).
  */

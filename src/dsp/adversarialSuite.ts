@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Adversarial Red-Team Forensic Stress Test Suite (20 Automated Attacks)
  *
  * Runs automated adversarial penetration tests against the ECHO//TRACE

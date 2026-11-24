@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Fast Fourier Transform & Spectral Analysis Tools
  * Pure TypeScript implementation, 100% client-side, zero dependencies.
  */

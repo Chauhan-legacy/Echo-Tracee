@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Hardware-Backed WebAuthn Attestation for Sanitization Receipts
  *
  * Uses the device's hardware Secure Enclave / TPM via WebAuthn platform authenticators

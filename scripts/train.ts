@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * ECHO//TRACE ML Training Script (T3)
  * Trains BeaconGuard and EditGuard using:
  * 1. ml-random-forest (Random Forest Classifier, MIT licensed)

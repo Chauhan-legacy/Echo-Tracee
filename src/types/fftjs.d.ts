@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
 declare module 'fft.js' {
   export default class FFT {
     constructor(size: number);

@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import React, { useState } from 'react';
 import { Clock, Play, Pause, Layers } from 'lucide-react';
 import { Finding, VisualFindingBox } from '../types';

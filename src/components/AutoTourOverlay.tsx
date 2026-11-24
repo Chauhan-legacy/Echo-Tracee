@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import React, { useEffect, useState } from 'react';
 import { Play, Pause, SkipForward, X, Sparkles, ExternalLink, QrCode } from 'lucide-react';
 import { SITE_URL, APP_CONFIG } from '../config';

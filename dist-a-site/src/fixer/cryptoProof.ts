@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Web Crypto ECDSA Receipt Signing & Verification
  * Generates an in-browser P-256 ECDSA keypair, signs the sanitization receipt
  * containing (original SHA-256, fixed SHA-256, changes, timestamp), and verifies it.

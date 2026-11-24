@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Priyansh Chauhan
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * Hilbert-Huang Transform (HHT) with Empirical Mode Decomposition (EMD)
  *
  * Traditional Fourier analysis assumes linearity and stationarity. Real audio
