@@ -85,6 +85,7 @@ export function computeBicoherence(
   const B_im: Float64Array[] = Array.from({ length: K }, () => new Float64Array(K));
   const P_prod: Float64Array[] = Array.from({ length: K }, () => new Float64Array(K));
   const P_sum: Float64Array[] = Array.from({ length: K }, () => new Float64Array(K));
+  const binPower = new Float64Array(K);
 
   // Hann window
   const window = new Float64Array(segmentSize);
@@ -107,6 +108,7 @@ export function computeBicoherence(
       const re1 = complexOut[2 * b1];
       const im1 = complexOut[2 * b1 + 1];
       const mag1Sq = re1 * re1 + im1 * im1;
+      binPower[i] += mag1Sq;
 
       for (let j = 0; j <= i; j++) {
         const b2 = bins[j];
@@ -137,13 +139,22 @@ export function computeBicoherence(
     }
   }
 
-  // Compute final squared bicoherence matrix b^2(f1, f2)
+  const invM = 1.0 / numSegments;
+
+  // Compute average bin power to reject noise-floor fluctuations
+  let totalBinPower = 0;
+  for (let i = 0; i < K; i++) {
+    totalBinPower += (binPower[i] * invM);
+  }
+  const avgBinPower = totalBinPower / Math.max(1, K);
+
   let peakBicoherence = 0;
   let peakF1 = 0;
   let peakF2 = 0;
+  let peakIdx1 = 0;
+  let peakIdx2 = 0;
 
   const bicoherenceMatrix: number[][] = Array.from({ length: K }, () => new Array(K).fill(0));
-  const invM = 1.0 / numSegments;
 
   for (let i = 0; i < K; i++) {
     const f1 = bins[i] * freqStep;
@@ -165,17 +176,23 @@ export function computeBicoherence(
         peakBicoherence = bic;
         peakF1 = f1;
         peakF2 = f2;
+        peakIdx1 = i;
+        peakIdx2 = j;
       }
     }
   }
 
   // Authentic physical grid transformers display high phase coupling (bic >= 0.45)
-  // especially near 50Hz or 60Hz fundamentals and their harmonic sum frequencies
+  // especially near 50Hz or 60Hz fundamentals and their harmonic sum frequencies,
+  // accompanied by an actual spectral peak above the noise floor
   const isNearGrid = (Math.abs(peakF1 - 50) < 6 || Math.abs(peakF1 - 60) < 6 ||
                       Math.abs(peakF2 - 50) < 6 || Math.abs(peakF2 - 60) < 6);
 
+  const peakPower = Math.max(binPower[peakIdx1], binPower[peakIdx2]) * invM;
+  const isProminentPeak = peakPower > 1.8 * avgBinPower;
+
   const hasQPC = peakBicoherence >= 0.42;
-  const isAuthentic = hasQPC && isNearGrid;
+  const isAuthentic = hasQPC && isNearGrid && isProminentPeak;
 
   const analysisTimeMs = Number((performance.now() - t0).toFixed(2));
 

@@ -7,6 +7,7 @@ import { VisualFindingBox } from '../types';
 import { ssim as computeSsimJs } from 'ssim.js';
 import { applyVoronoiRedaction } from './voronoiRedactor';
 import { scrubSensorPRNU } from '../dsp/prnuSensor';
+import { scrambleRPPGInCanvas } from '../dsp/rppgPulse';
 
 /**
  * Computes Structural Similarity Index (SSIM) between two image regions.
@@ -158,12 +159,13 @@ export function irreversibleMaskCanvasRegion(
 export function sanitizeVideoFrames(
   frames: HTMLCanvasElement[],
   boxes: VisualFindingBox[],
-  options?: { useVoronoi?: boolean; scrubPRNU?: boolean }
+  options?: { useVoronoi?: boolean; scrubPRNU?: boolean; scrambleRPPG?: boolean }
 ): { cleanFrames: HTMLCanvasElement[]; maxSsim: number } {
   const cleanFrames: HTMLCanvasElement[] = [];
   let maxSsim = 0.0;
   const useVoronoi = options?.useVoronoi ?? true;
   const scrubPRNU = options?.scrubPRNU ?? true;
+  const scrambleRPPG = options?.scrambleRPPG ?? true;
 
   for (const frame of frames) {
     const copy = document.createElement('canvas');
@@ -179,6 +181,10 @@ export function sanitizeVideoFrames(
       const py = b.y * frame.height;
       const pw = b.width * frame.width;
       const ph = b.height * frame.height;
+
+      if (scrambleRPPG && b.type === 'face') {
+        scrambleRPPGInCanvas(ctx, { x: px, y: py, width: pw, height: ph });
+      }
 
       if (useVoronoi) {
         applyVoronoiRedaction(ctx, { x: px, y: py, width: pw, height: ph });
