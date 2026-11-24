@@ -1,0 +1,29 @@
+{
+  "name": "BeaconGuard",
+  "version": "3.0.0-tiny",
+  "featureNames": [
+    "peakSnrDb",
+    "spectralFlatness",
+    "envelopePeriodicity",
+    "spectralKurtosis",
+    "persistenceRatio"
+  ],
+  "weights": [
+    0.2034,
+    -1.86818,
+    0.00246,
+    0.13031,
+    -0.21474
+  ],
+  "bias": -2.17553,
+  "plattA": 1.42414,
+  "plattB": -0.1141,
+  "metrics": {
+    "trainAccuracy": 0.985,
+    "testAccuracy": 1,
+    "aucRoc": 1,
+    "brierScore": 0.024,
+    "fprAt95Tpr": 0.008
+  },
+  "trainedAt": "2026-11-24T06:22:38.937Z"
+}

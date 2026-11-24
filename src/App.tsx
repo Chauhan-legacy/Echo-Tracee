@@ -17,6 +17,7 @@ import { TimelineViewer } from './components/TimelineViewer';
 import { ETBenchPage } from './components/ETBenchPage';
 import { SelfAuditPage } from './components/SelfAuditPage';
 import { CommandPalette } from './components/CommandPalette';
+import { ModelCardModal } from './components/ModelCardModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 import { ScanResult, Finding, FixReport, VisualFindingBox } from './types';
@@ -42,6 +43,7 @@ export const App: React.FC = () => {
   const [fixReport, setFixReport] = useState<FixReport | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isNetworkAuditOpen, setIsNetworkAuditOpen] = useState(false);
+  const [isModelCardOpen, setIsModelCardOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isTourActive, setIsTourActive] = useState(false);
   const [isRecordingMode, setIsRecordingMode] = useState(false);
@@ -466,6 +468,7 @@ export const App: React.FC = () => {
         scanResult={scanResult}
         isScanning={isScanning}
         onOpenNetworkAudit={() => setIsNetworkAuditOpen(true)}
+        onOpenModelCard={() => setIsModelCardOpen(true)}
         isRecordingMode={isRecordingMode}
         onToggleRecordingMode={handleToggleRecordingMode}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
@@ -915,6 +918,12 @@ export const App: React.FC = () => {
       {isNetworkAuditOpen && (
         <NetworkAuditModal onClose={() => setIsNetworkAuditOpen(false)} />
       )}
+
+      {/* Model Card Modal */}
+      <ModelCardModal
+        isOpen={isModelCardOpen}
+        onClose={() => setIsModelCardOpen(false)}
+      />
 
       {/* Guided Auto-Tour Overlay */}
       <AutoTourOverlay

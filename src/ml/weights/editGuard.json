@@ -1,0 +1,29 @@
+{
+  "name": "EditGuard",
+  "version": "3.0.0-tiny",
+  "featureNames": [
+    "enfStepDeltaHz",
+    "cusumStatistic",
+    "spectralFluxJump",
+    "symKlDivergence",
+    "bhattacharyyaDist"
+  ],
+  "weights": [
+    0.55004,
+    1.2898,
+    1.4349,
+    1.45218,
+    1.353
+  ],
+  "bias": -1.5858,
+  "plattA": 1.77822,
+  "plattB": -0.14995,
+  "metrics": {
+    "trainAccuracy": 0.988,
+    "testAccuracy": 1,
+    "aucRoc": 1,
+    "brierScore": 0.019,
+    "fprAt95Tpr": 0.006
+  },
+  "trainedAt": "2026-11-24T06:22:38.982Z"
+}

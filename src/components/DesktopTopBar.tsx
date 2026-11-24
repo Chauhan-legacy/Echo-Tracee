@@ -7,6 +7,7 @@ interface DesktopTopBarProps {
   scanResult: ScanResult | null;
   isScanning: boolean;
   onOpenNetworkAudit: () => void;
+  onOpenModelCard: () => void;
   isRecordingMode: boolean;
   onToggleRecordingMode: () => void;
   onOpenCommandPalette: () => void;
@@ -16,6 +17,7 @@ export const DesktopTopBar: React.FC<DesktopTopBarProps> = ({
   scanResult,
   isScanning,
   onOpenNetworkAudit,
+  onOpenModelCard,
   isRecordingMode,
   onToggleRecordingMode,
   onOpenCommandPalette,
@@ -80,6 +82,15 @@ export const DesktopTopBar: React.FC<DesktopTopBarProps> = ({
           >
             <ShieldCheck className="h-3.5 w-3.5" />
             <span>Prove it</span>
+          </button>
+
+          {/* Model Card Link Button */}
+          <button
+            onClick={onOpenModelCard}
+            className="hidden sm:flex min-h-[38px] items-center gap-1.5 rounded-xl border border-beige-hairline bg-cream px-3 py-1 text-xs font-bold text-forest hover:bg-beige-sunken transition shadow-sm"
+            title="View ML Model Cards, metrics, and honest disclosures"
+          >
+            <span>Model Cards</span>
           </button>
 
           {/* Recording Mode Toggle */}
