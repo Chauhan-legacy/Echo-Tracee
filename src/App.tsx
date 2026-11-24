@@ -18,7 +18,7 @@ import { IngestedMedia, ingestUserFile } from './utils/fileIngest';
 import { SITE_URL, APP_CONFIG } from './config';
 
 import { ScanResult, Finding, FixReport, VisualFindingBox } from './types';
-import { generateIncident001 } from './demo/incident001';
+import { generateIncident001, generateIncident002, generateIncident003 } from './demo/incident001';
 import { analyzeHum } from './dsp/hum';
 import { analyzeUltrasonicTones } from './dsp/ultrasonic';
 import { analyzeRoomCharacter } from './dsp/reverb';
@@ -202,7 +202,7 @@ export const App: React.FC = () => {
   }, []);
 
   // Load and analyze INCIDENT-001 (The Hostel Reel)
-  const handleLoadIncident001 = useCallback(async () => {
+  const handleLoadIncident = useCallback(async (incidentId: '001' | '002' | '003' = '001') => {
     if (isScanning) return; // double-tap debounce
     setIsScanning(true);
     setFixReport(null);
@@ -216,13 +216,18 @@ export const App: React.FC = () => {
     const startPerf = performance.now();
 
     // 1. In-browser procedural generator
-    const demoData = await generateIncident001();
+    const demoData = incidentId === '002'
+      ? await generateIncident002()
+      : incidentId === '003'
+      ? await generateIncident003()
+      : await generateIncident001();
+
     setVideoFrames(demoData.videoFrames);
     setAudioChannelData(demoData.audioBuffer);
     (window as any).__LAST_AUDIO_DATA__ = demoData.audioBuffer;
 
-    // Fast tactile delay (~250ms) to ensure LCP/latency budget <= 3.0s under 4x CPU throttle
-    await new Promise(r => setTimeout(r, 250));
+    // Fast tactile delay (~200ms) to ensure LCP/latency budget <= 3.0s under 4x CPU throttle
+    await new Promise(r => setTimeout(r, 200));
 
     // 2. Real DSP analyzers run on actual generated samples
     const humRes = analyzeHum(demoData.audioBuffer, demoData.sampleRate);
@@ -246,11 +251,12 @@ export const App: React.FC = () => {
 
     // Add GPS finding from container metadata
     if (demoData.metadata.gps) {
+      const locName = demoData.metadata.gps.locationName || 'Demo Site';
       allFindings.push({
-        id: 'demo-metadata-gps',
+        id: `demo-metadata-gps-${incidentId}`,
         category: 'metadata',
-        title: 'QuickTime GPS Coordinates Embedded (Gujarat Hostel)',
-        plainText: `File container contains embedded geographic coordinates: 23.2156° N, 72.6369° E (Gandhinagar, Gujarat). Device: ${demoData.metadata.deviceModel}.`,
+        title: `QuickTime GPS Coordinates Embedded (${locName.split(',')[0]})`,
+        plainText: `File container contains embedded geographic coordinates: ${demoData.metadata.gps.latitude.toFixed(4)}° N, ${demoData.metadata.gps.longitude.toFixed(4)}° E (${locName}). Device: ${demoData.metadata.deviceModel}.`,
         severity: 'critical',
         confidence: 1.0,
         evidenceKind: 'Measured',
@@ -270,8 +276,14 @@ export const App: React.FC = () => {
     const leakScore = calculateLeakScore(allFindings);
     const elapsedMs = Math.round(performance.now() - startPerf);
 
+    const caseNames: Record<string, string> = {
+      '001': 'INCIDENT-001: The Hostel Reel [DEMO]',
+      '002': 'INCIDENT-002: Coffee Shop Voice Note [DEMO]',
+      '003': 'INCIDENT-003: Silent Office Video [DEMO]',
+    };
+
     const result: ScanResult = {
-      sourceName: 'INCIDENT-001: The Hostel Reel [DEMO]',
+      sourceName: caseNames[incidentId] || caseNames['001'],
       duration: demoData.duration,
       sha256: demoData.sha256,
       findings: allFindings,
@@ -297,6 +309,10 @@ export const App: React.FC = () => {
       try { navigator.vibrate([40, 60, 40]); } catch {}
     }
   }, [isScanning]);
+
+  const handleLoadIncident001 = useCallback(() => handleLoadIncident('001'), [handleLoadIncident]);
+  const handleLoadIncident002 = useCallback(() => handleLoadIncident('002'), [handleLoadIncident]);
+  const handleLoadIncident003 = useCallback(() => handleLoadIncident('003'), [handleLoadIncident]);
 
   // Core Ingested Media Processor
   const processIngestedMedia = useCallback(async (media: IngestedMedia) => {
@@ -589,6 +605,8 @@ export const App: React.FC = () => {
               <ErrorBoundary fallbackTitle="Could not load Ingest Console">
                 <ScanConsole
                   onLoadIncident001={handleLoadIncident001}
+                  onLoadIncident002={handleLoadIncident002}
+                  onLoadIncident003={handleLoadIncident003}
                   onUploadFile={handleUploadFile}
                   isScanning={isScanning}
                   scanResult={scanResult}

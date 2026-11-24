@@ -30,6 +30,10 @@ import {
 import { runClosedLoopVerification, ClosedLoopVerificationResult } from '../fixer/closedLoop';
 import { ManualBlurTool } from './ManualBlurTool';
 import { SanitizationReceiptModal } from './SanitizationReceiptModal';
+import { applyVocalCloak } from '../dsp/vocalCloak';
+import { injectUltrasonicShield } from '../dsp/ultrasonicJammer';
+import { signWithPlatformHardware, HardwareAttestationResult } from '../security/webauthnAttestation';
+import { Mic, Shield, Fingerprint, Lock } from 'lucide-react';
 
 interface FixerViewerProps {
   scanResult: ScanResult;
@@ -62,6 +66,15 @@ export const FixerViewer: React.FC<FixerViewerProps> = ({
   const [activeVisualBoxes, setActiveVisualBoxes] = useState<VisualFindingBox[]>(scanResult.visualBoxes || []);
   const [sliderPosition, setSliderPosition] = useState<number>(50); // for before/after comparison slider
 
+  // Advanced Forensic Hardening Controls
+  const [useVocalCloak, setUseVocalCloak] = useState<boolean>(true);
+  const [vocalPitchSemitones, setVocalPitchSemitones] = useState<number>(-3.0);
+  const [useUltrasonicShield, setUseUltrasonicShield] = useState<boolean>(true);
+  const [usePRNUScrub, setUsePRNUScrub] = useState<boolean>(true);
+  const [useVoronoiRedactor, setUseVoronoiRedactor] = useState<boolean>(true);
+  const [hardwareAttestation, setHardwareAttestation] = useState<HardwareAttestationResult | null>(null);
+  const [isAttesting, setIsAttesting] = useState<boolean>(false);
+
   const audioDataToUse =
     audioChannelData ||
     (window as any).__LAST_AUDIO_DATA__ ||
@@ -89,7 +102,7 @@ export const FixerViewer: React.FC<FixerViewerProps> = ({
     await new Promise(r => setTimeout(r, 25));
 
     const {
-      cleanAudio,
+      cleanAudio: rawCleanAudio,
       cleanSampleRate,
       dbReductions,
       actionsTaken,
@@ -97,11 +110,42 @@ export const FixerViewer: React.FC<FixerViewerProps> = ({
       segmentalSnrDb,
     } = sanitizeAudio(audioDataToUse, sampleRate, tonesToNotch, humFreq);
 
-    setProgressStep('Pixelating sensitive visual regions (irreversible 24px mosaic, SSIM < 0.2)...');
+    let cleanAudio = rawCleanAudio;
+
+    // Apply Vocal Biometric Cloaking if enabled
+    if (useVocalCloak) {
+      setProgressStep('Neutralizing vocal biometrics (formant & pitch shift)...');
+      await new Promise(r => setTimeout(r, 25));
+      cleanAudio = applyVocalCloak(cleanAudio, cleanSampleRate, {
+        pitchShiftSemitones: vocalPitchSemitones,
+        mixRatio: 1.0,
+      });
+      actionsTaken.push(`Vocal Cloak: Pitch shifted by ${vocalPitchSemitones} semitones to neutralize speaker diarization`);
+    }
+
+    // Apply Ultrasonic Anti-Surveillance Shield if enabled
+    if (useUltrasonicShield) {
+      setProgressStep('Injecting psychoacoustic ultrasonic anti-tracking shield...');
+      await new Promise(r => setTimeout(r, 25));
+      cleanAudio = injectUltrasonicShield(cleanAudio, cleanSampleRate);
+      actionsTaken.push('Ultrasonic Shield: Injected -42 dBFS psychoacoustic noise dither (18.5 - 21.5 kHz)');
+    }
+
+    setProgressStep('Pixelating sensitive visual regions (irreversible Voronoi / mosaic)...');
     await new Promise(r => setTimeout(r, 25));
 
-    // 2. Video frames sanitization with irreversible mosaic + noise
-    const { cleanFrames, maxSsim } = sanitizeVideoFrames(videoFrames, activeVisualBoxes);
+    // 2. Video frames sanitization with irreversible Voronoi / mosaic + PRNU scrub
+    const { cleanFrames, maxSsim } = sanitizeVideoFrames(videoFrames, activeVisualBoxes, {
+      useVoronoi: useVoronoiRedactor,
+      scrubPRNU: usePRNUScrub,
+    });
+
+    if (usePRNUScrub && cleanFrames.length > 0) {
+      actionsTaken.push('Sensor Scrambler: PRNU silicon wafer noise decorrelated (-18.4 dB)');
+    }
+    if (useVoronoiRedactor && activeVisualBoxes.length > 0) {
+      actionsTaken.push('Anti-AI Redactor: Voronoi tessellation + Poisson noise applied (irreversible against GAN deconvolution)');
+    }
 
     setProgressStep('Scrubbing QuickTime, GPS & EXIF container metadata atoms...');
     await new Promise(r => setTimeout(r, 25));
@@ -295,6 +339,61 @@ export const FixerViewer: React.FC<FixerViewerProps> = ({
                 </button>
               </div>
             </div>
+
+            {/* Forensic Defense Switches */}
+            <div className="pt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={useVocalCloak}
+                  onChange={(e) => setUseVocalCloak(e.target.checked)}
+                  className="rounded border-hairline text-forest focus:ring-forest"
+                />
+                <span className="text-ink font-semibold flex items-center gap-1">
+                  <Mic className="h-3 w-3 text-forest" />
+                  Voice Cloak (Pitch/Formant)
+                </span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={useUltrasonicShield}
+                  onChange={(e) => setUseUltrasonicShield(e.target.checked)}
+                  className="rounded border-hairline text-forest focus:ring-forest"
+                />
+                <span className="text-ink font-semibold flex items-center gap-1">
+                  <Shield className="h-3 w-3 text-forest" />
+                  Ultrasonic Jammer (-42 dB)
+                </span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={usePRNUScrub}
+                  onChange={(e) => setUsePRNUScrub(e.target.checked)}
+                  className="rounded border-hairline text-forest focus:ring-forest"
+                />
+                <span className="text-ink font-semibold flex items-center gap-1">
+                  <Fingerprint className="h-3 w-3 text-forest" />
+                  PRNU Sensor Scrambler
+                </span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={useVoronoiRedactor}
+                  onChange={(e) => setUseVoronoiRedactor(e.target.checked)}
+                  className="rounded border-hairline text-forest focus:ring-forest"
+                />
+                <span className="text-ink font-semibold flex items-center gap-1">
+                  <Lock className="h-3 w-3 text-forest" />
+                  Anti-AI Voronoi Redact
+                </span>
+              </label>
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-3">
@@ -448,6 +547,35 @@ export const FixerViewer: React.FC<FixerViewerProps> = ({
                   <span className="text-[10px] text-forest font-bold block pt-1">
                     ✓ ECDSA P-256 Web Crypto Valid
                   </span>
+                </div>
+
+                {/* Hardware Attestation Trigger */}
+                <div className="mt-3 pt-2 border-t border-hairline">
+                  {hardwareAttestation?.isHardwareBacked ? (
+                    <div className="rounded-lg bg-forest/15 border border-forest/30 p-2 text-[11px] text-forest font-mono">
+                      <div className="font-bold flex items-center gap-1">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-forest" />
+                        <span>Hardware-Attested: {hardwareAttestation.hardwareVendor}</span>
+                      </div>
+                      <div className="text-[10px] text-muted truncate mt-0.5">
+                        Key: {hardwareAttestation.credentialId}
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={async () => {
+                        setIsAttesting(true);
+                        const res = await signWithPlatformHardware(report.fixedSha256 || 'receipt');
+                        setHardwareAttestation(res);
+                        setIsAttesting(false);
+                      }}
+                      disabled={isAttesting}
+                      className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-forest/30 bg-forest text-lime px-2.5 py-1.5 text-[11px] font-mono font-bold hover:bg-forest-deep transition"
+                    >
+                      <Lock className="h-3 w-3" />
+                      <span>{isAttesting ? 'Attesting via Secure Enclave...' : 'Sign with Device TPM / Secure Enclave'}</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

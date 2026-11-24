@@ -28,6 +28,7 @@
     font-size: 16px; /* Body >= 16px rule */
     line-height: 1.6;
     min-height: 100vh;
+    overflow-x: hidden;
     /* Faint topographic-contour SVG texture (5% opacity) */
     background-image: radial-gradient(#174D35 0.75px, transparent 0.75px), radial-gradient(#174D35 0.75px, #E8DCC3 0.75px);
     background-size: 30px 30px;

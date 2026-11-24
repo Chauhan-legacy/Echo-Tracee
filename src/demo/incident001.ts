@@ -285,3 +285,193 @@ export async function generateIncident001(): Promise<Incident001Data> {
     sha256,
   };
 }
+
+/**
+ * Procedurally generates INCIDENT-002: The Coffee Shop Interview (12s @ 48 kHz).
+ * Features:
+ * - 60.01 Hz North American grid mains hum + 120/180 Hz harmonics
+ * - Heavy acoustic crowd reverberation (RT60 ~ 0.72s)
+ * - Formant speech voice note leaking speaker biometrics
+ * - QuickTime metadata from Austin, Texas
+ */
+export async function generateIncident002(): Promise<Incident001Data> {
+  const sampleRate = 48000;
+  const duration = 12.0;
+  const numSamples = Math.floor(sampleRate * duration);
+  const audio = new Float32Array(numSamples);
+
+  let humPhase = 0;
+  const targetRt60 = 0.72;
+  const decayRate = Math.log(1000) / targetRt60;
+  const clickTimes = [3.0, 7.5];
+
+  let seed = 777123;
+  const nextLcg = () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    return (seed / 4294967296) * 2 - 1;
+  };
+
+  for (let i = 0; i < numSamples; i++) {
+    const t = i / sampleRate;
+
+    // 60.01 Hz North American Mains Hum
+    const humFreq = 60.01 + 0.005 * Math.sin(t * 0.3);
+    humPhase += (2 * Math.PI * humFreq) / sampleRate;
+    const hum = 0.12 * Math.sin(humPhase) + 0.04 * Math.sin(humPhase * 2) + 0.02 * Math.sin(humPhase * 3);
+
+    // Formant speech-like audio
+    const speech = 0.25 * Math.sin(2 * Math.PI * 180 * t) * Math.sin(t * 2.5) +
+                   0.15 * Math.sin(2 * Math.PI * 720 * t) * Math.cos(t * 1.8);
+
+    // Acoustic room reverb
+    let room = 0;
+    for (const c of clickTimes) {
+      const dt = t - c;
+      if (dt >= 0 && dt < 1.5) {
+        room += Math.exp(-decayRate * dt) * nextLcg() * 0.45;
+      }
+    }
+
+    const noise = nextLcg() * 0.02;
+    audio[i] = hum + speech + room + noise;
+  }
+
+  const metadata: MetadataReport = {
+    gps: {
+      latitude: 30.2672,
+      longitude: -97.7431,
+      altitude: 149.0,
+      locationName: 'Austin, Texas, United States (Downtown Coffee Roasters)',
+    },
+    creationTime: '2026-11-24T11:20:00Z',
+    deviceModel: 'Samsung Galaxy S24 Ultra',
+    software: 'Android 15 OneUI Camera',
+    rawTags: {
+      'Make': 'Samsung',
+      'Model': 'SM-S928B',
+      'GPSLatitude': '30 deg 16\' 1.92" N',
+      'GPSLongitude': '97 deg 44\' 35.16" W',
+    },
+    isDemo: true,
+  };
+
+  const sha256 = await computeSha256(audio);
+
+  return {
+    audioBuffer: audio,
+    sampleRate,
+    duration,
+    metadata,
+    visualBoxes: [
+      {
+        x: 0.25,
+        y: 0.15,
+        width: 0.5,
+        height: 0.6,
+        label: 'Human Face (Speaker 1)',
+        type: 'face',
+        timestamp: 1.0,
+      },
+    ],
+    videoFrames: [],
+    transcriptDemo: {
+      text: "Hey, we're discussing the confidential partnership at the downtown cafe in Austin. I'm leaving for the airport at 4 PM.",
+      speaker: 'Speaker 1',
+      isDemo: true,
+    },
+    sha256,
+  };
+}
+
+/**
+ * Procedurally generates INCIDENT-003: The Silent Office Recording (8s).
+ * Features:
+ * - Silent audio track (no microphones active)
+ * - 100 Hz Optical rolling shutter banding from fluorescent ballast
+ * - Camera PRNU sensor fingerprint
+ * - Embedded device serial number and GPS in container metadata
+ */
+export async function generateIncident003(): Promise<Incident001Data> {
+  const sampleRate = 48000;
+  const duration = 8.0;
+  const numSamples = Math.floor(sampleRate * duration);
+  const audio = new Float32Array(numSamples); // Pure digital silence
+
+  const width = 640;
+  const height = 360;
+  const videoFrames: HTMLCanvasElement[] = [];
+
+  for (let frameIdx = 0; frameIdx < 8; frameIdx++) {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      // Office background
+      ctx.fillStyle = '#E8E8EC';
+      ctx.fillRect(0, 0, width, height);
+
+      // Optical rolling shutter 100 Hz banding (3.33 cycles per frame)
+      for (let y = 0; y < height; y++) {
+        const band = 18 * Math.sin((2 * Math.PI * 3.33 * y) / height + frameIdx * 0.4);
+        ctx.fillStyle = `rgba(0, 0, 0, ${Math.max(0, band / 255)})`;
+        ctx.fillRect(0, y, width, 1);
+      }
+
+      // Computer monitor on desk
+      ctx.fillStyle = '#1A1A24';
+      ctx.fillRect(180, 80, 280, 180);
+      ctx.fillStyle = '#00F0FF';
+      ctx.font = '12px monospace';
+      ctx.fillText('CONFIDENTIAL PROJECT METRICS // RESTRICTED', 200, 140);
+      ctx.fillText('API_KEY = sk_live_891048120498124', 200, 165);
+    }
+    videoFrames.push(canvas);
+  }
+
+  const metadata: MetadataReport = {
+    gps: {
+      latitude: 51.5074,
+      longitude: -0.1278,
+      altitude: 35.0,
+      locationName: 'London, Greater London, United Kingdom (HQ Office 4B)',
+    },
+    creationTime: '2026-11-24T09:15:32Z',
+    deviceModel: 'Sony Alpha 7 IV (ILCE-7M4)',
+    software: 'Sony ILCE-7M4 v3.00',
+    rawTags: {
+      'Make': 'Sony',
+      'Model': 'ILCE-7M4',
+      'BodySerialNumber': '4819204',
+      'LensModel': 'FE 24-70mm F2.8 GM II',
+    },
+    isDemo: true,
+  };
+
+  const sha256 = await computeSha256(audio);
+
+  return {
+    audioBuffer: audio,
+    sampleRate,
+    duration,
+    metadata,
+    visualBoxes: [
+      {
+        x: 180 / width,
+        y: 80 / height,
+        width: 280 / width,
+        height: 180 / height,
+        label: 'Confidential Screen API Key',
+        type: 'text',
+        timestamp: 1.0,
+      },
+    ],
+    videoFrames,
+    transcriptDemo: {
+      text: '[Audio Track Muted / Zero Microphones Active]',
+      speaker: 'None',
+      isDemo: true,
+    },
+    sha256,
+  };
+}

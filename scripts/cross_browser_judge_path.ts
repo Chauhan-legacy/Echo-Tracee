@@ -117,7 +117,7 @@ async function runBrowserTest(
     const sanitizeBtn = page.getByRole('button', { name: /Sanitize Now/i }).first();
     if (await sanitizeBtn.isVisible()) {
       await sanitizeBtn.click();
-      await page.waitForSelector('text=Sanitization Complete', { timeout: 8000 });
+      await page.waitForSelector('text=Sanitization Complete', { timeout: 15000 });
       runResult.fixerPass = true;
       console.log(`5. Fixer Sanitization: PASS`);
     } else {

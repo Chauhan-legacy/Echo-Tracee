@@ -61,31 +61,19 @@ export const DesktopTopBar: React.FC<DesktopTopBarProps> = ({
           </div>
         </div>
 
-        {/* Right Controls: View Mode, Live Mic, Command Palette, Privacy Badge */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Plain / Technical Switch (F4) - desktop only */}
+        {/* Right Controls: View Mode, Advanced Drawer, Prove it, Search */}
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          {/* Plain / Technical Switch (F4) */}
           {onToggleViewMode && (
             <button
               onClick={onToggleViewMode}
-              className="hidden xl:flex items-center gap-1 rounded-xl border border-beige-hairline bg-cream px-2.5 py-1 text-xs font-bold text-forest hover:bg-beige-sunken transition shadow-sm"
+              className="hidden md:flex items-center gap-1 rounded-xl border border-beige-hairline bg-cream px-2.5 py-1 text-xs font-bold text-forest hover:bg-beige-sunken transition shadow-sm"
               title="Toggle between Plain Language and Technical Forensic metrics"
             >
               <Sliders className="h-3.5 w-3.5 text-forest" />
               <span className="uppercase text-[11px] font-mono">
-                {viewMode === 'plain' ? 'Mode: Plain' : 'Mode: Tech'}
+                {viewMode === 'plain' ? 'Plain' : 'Tech'}
               </span>
-            </button>
-          )}
-
-          {/* Live Mic Scan Trigger (F2) - desktop only */}
-          {onOpenLiveRoomScan && (
-            <button
-              onClick={onOpenLiveRoomScan}
-              className="hidden lg:flex items-center gap-1.5 rounded-xl border border-forest/30 bg-[#174D35] px-3 py-1 text-xs font-bold text-[#8BCF55] hover:bg-[#0B281B] transition shadow-sm"
-              title="Record 10 seconds of raw microphone audio to check your room"
-            >
-              <Mic className="h-3.5 w-3.5 text-[#8BCF55]" />
-              <span>Scan Room</span>
             </button>
           )}
 
@@ -93,7 +81,7 @@ export const DesktopTopBar: React.FC<DesktopTopBarProps> = ({
           {onOpenAdvancedDrawer && (
             <button
               onClick={onOpenAdvancedDrawer}
-              className="flex min-h-[38px] items-center gap-1.5 rounded-xl border border-beige-hairline bg-cream px-2.5 sm:px-3 py-1 text-xs font-bold text-forest hover:bg-beige-sunken transition shadow-sm"
+              className="flex min-h-[36px] items-center gap-1 rounded-xl border border-beige-hairline bg-cream px-2 sm:px-3 py-1 text-xs font-bold text-forest hover:bg-beige-sunken transition shadow-sm"
               title="Open Advanced Forensic Drawer (Deep timeline, graphs, models)"
             >
               <Layers className="h-3.5 w-3.5 text-forest" />
@@ -101,56 +89,27 @@ export const DesktopTopBar: React.FC<DesktopTopBarProps> = ({
             </button>
           )}
 
-          {/* Command Palette Trigger - desktop only */}
+          {/* Command Palette Trigger */}
           <button
             onClick={onOpenCommandPalette}
-            className="hidden lg:flex items-center gap-1.5 rounded-xl border border-beige-hairline bg-cream px-3 py-1.5 text-xs font-mono text-forest-ink hover:bg-beige-sunken transition shadow-sm"
+            className="hidden sm:flex min-h-[36px] items-center gap-1.5 rounded-xl border border-beige-hairline bg-cream px-2.5 sm:px-3 py-1 text-xs font-mono text-forest-ink hover:bg-beige-sunken transition shadow-sm"
             title="Open command palette (Ctrl/Cmd+K)"
           >
             <Search className="h-3.5 w-3.5 text-forest-muted" />
-            <span className="hidden sm:inline font-sans text-forest-muted">Search / Cmd</span>
             <kbd className="rounded border border-beige-hairline bg-beige-sunken px-1.5 py-0.5 text-[10px] font-bold text-forest">
               ⌘K
             </kbd>
           </button>
 
-          {/* Privacy Proof badge */}
-          <div className="hidden xl:flex items-center gap-1.5 rounded-xl bg-forest/10 border border-forest/20 px-3 py-1 text-xs font-semibold text-forest">
-            <Shield className="h-3.5 w-3.5 text-forest" />
-            <span>Nothing leaves your device</span>
-          </div>
-
-          {/* Prove it Button */}
+          {/* Prove Zero Leaks Button */}
           <button
             onClick={onOpenNetworkAudit}
-            className="flex min-h-[38px] items-center gap-1.5 rounded-xl bg-forest px-2.5 sm:px-3 py-1 text-xs font-bold text-lime hover:bg-forest-deep transition shadow-sm"
+            className="flex min-h-[36px] items-center gap-1 rounded-xl bg-forest px-2.5 sm:px-3 py-1 text-xs font-bold text-lime hover:bg-forest-deep transition shadow-sm"
             title="Inspect runtime network requests (proves zero user data transmitted)"
           >
-            <ShieldCheck className="h-3.5 w-3.5" />
-            <span>Prove it</span>
-          </button>
-
-          {/* Model Card Link Button - desktop only */}
-          <button
-            onClick={onOpenModelCard}
-            className="hidden xl:flex min-h-[38px] items-center gap-1.5 rounded-xl border border-beige-hairline bg-cream px-3 py-1 text-xs font-bold text-forest hover:bg-beige-sunken transition shadow-sm"
-            title="View ML Model Cards, metrics, and honest disclosures"
-          >
-            <span>Model Cards</span>
-          </button>
-
-          {/* Recording Mode Toggle - desktop only */}
-          <button
-            onClick={onToggleRecordingMode}
-            className={`hidden lg:flex min-h-[38px] items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-bold transition ${
-              isRecordingMode
-                ? 'bg-brick text-cream border border-brick shadow-sm animate-pulse'
-                : 'bg-beige-sunken text-forest-muted border border-beige-hairline hover:text-forest-ink'
-            }`}
-            title="Enlarge text and hide cursor for recording clean videos"
-          >
-            <Video className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{isRecordingMode ? 'REC ON' : 'REC'}</span>
+            <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden sm:inline">Prove Zero Leaks</span>
+            <span className="sm:hidden text-[11px]">Audit</span>
           </button>
         </div>
       </div>

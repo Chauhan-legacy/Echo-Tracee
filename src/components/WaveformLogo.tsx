@@ -54,21 +54,23 @@ export const WaveformLogo: React.FC<WaveformLogoProps> = ({ isScanning = false }
   }, [isScanning]);
 
   return (
-    <div className="relative flex items-center justify-center overflow-hidden py-1">
+    <div className="relative flex items-center justify-start px-1 sm:px-2 py-1 select-none shrink-0">
       {/* Background canvas waveform */}
       <canvas
         ref={canvasRef}
-        width={240}
-        height={48}
-        className="pointer-events-none absolute inset-0 h-full w-full opacity-60"
+        width={180}
+        height={40}
+        className="pointer-events-none absolute inset-0 h-full w-full opacity-40 rounded-xl"
       />
       {/* Brand Title */}
       <div className="relative z-10 flex items-center gap-1.5 sm:gap-2">
-        <span className="font-mono text-lg sm:text-2xl font-black tracking-wide sm:tracking-widest text-cyan drop-shadow-[0_0_12px_rgba(0,240,255,0.4)]">
-          ECHO<span className="text-[#FF3366]">//</span>TRACE
+        <span className="font-mono text-base sm:text-xl font-black tracking-wider flex items-center">
+          <span className="text-[#174D35]">ECHO</span>
+          <span className="text-[#A32A1F] mx-0.5">//</span>
+          <span className="text-[#10291D]">TRACE</span>
         </span>
-        <span className="hidden sm:inline rounded border border-cyan/40 bg-cyan/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-cyan uppercase tracking-wider">
-          v1.0
+        <span className="rounded-md border border-forest/30 bg-forest/10 px-1 py-0.5 font-mono text-[9px] sm:text-[10px] font-bold text-forest uppercase tracking-wider">
+          PRO
         </span>
       </div>
     </div>
