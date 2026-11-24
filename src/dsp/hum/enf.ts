@@ -187,6 +187,56 @@ export function detectEnfEdits(
   return edits;
 }
 
+function measureNarrowbandSnr(
+  signal: Float32Array,
+  targetFreq: number,
+  fs: number
+): number {
+  const fftSize = 4096;
+  const fft = new SplitRadixRealFFT(fftSize);
+  const half = fftSize / 2;
+  const inBuf = new Float64Array(fftSize);
+  const rBuf = new Float64Array(half + 1);
+  const iBuf = new Float64Array(half + 1);
+
+  const L = Math.min(signal.length, fftSize);
+  for (let i = 0; i < L; i++) {
+    const w = 0.5 * (1.0 - Math.cos((2.0 * Math.PI * i) / (L - 1)));
+    inBuf[i] = signal[i] * w;
+  }
+  fft.transformReal(inBuf, rBuf, iBuf);
+  const mag = fft.magnitudeSpectrum(rBuf, iBuf);
+
+  const binStep = fs / fftSize;
+  const targetBin = Math.round(targetFreq / binStep);
+  if (targetBin < 5 || targetBin >= half - 30) return 0.0;
+
+  // Peak in ±3 bins around target
+  let peakMag = 0.0;
+  for (let b = targetBin - 3; b <= targetBin + 3; b++) {
+    if (mag[b] > peakMag) peakMag = mag[b];
+  }
+
+  // Surrounding noise floor in [targetBin - 25, targetBin - 8] and [targetBin + 8, targetBin + 25]
+  let noiseSum = 0.0;
+  let noiseCount = 0;
+  for (let b = targetBin - 25; b <= targetBin - 8; b++) {
+    if (b >= 1) {
+      noiseSum += mag[b];
+      noiseCount++;
+    }
+  }
+  for (let b = targetBin + 8; b <= targetBin + 25; b++) {
+    if (b < half) {
+      noiseSum += mag[b];
+      noiseCount++;
+    }
+  }
+
+  const avgNoise = noiseCount > 0 ? noiseSum / noiseCount : 1e-12;
+  return 20.0 * Math.log10(Math.max(1e-6, peakMag) / Math.max(1e-12, avgNoise));
+}
+
 /**
  * Main ENF / Power Grid Hum Analyzer (M2)
  */
@@ -241,21 +291,22 @@ export function analyzeHumM2(
 
       const filtered = zeroPhaseBandpass(decimated, target, 4.0, fsDecimated);
       const est = estimateFrequencyEsprit(filtered, fsDecimated);
+      const rawSnr = measureNarrowbandSnr(decimated, target, fsDecimated);
 
-      if (Math.abs(est.freq - target) < 1.5) {
+      if (Math.abs(est.freq - target) < 1.5 && rawSnr >= 12.0) {
         harmResults.push({
           harmonicNumber: k + 1,
           frequencyHz: Number(est.freq.toFixed(3)),
-          snrDb: est.snrDb,
+          snrDb: Number(rawSnr.toFixed(1)),
           crBoundHz: Number(Math.sqrt(est.variance).toFixed(4)),
         });
-        avgSnr += est.snrDb;
+        avgSnr += rawSnr;
       }
     }
 
     if (harmResults.length > 0) {
       avgSnr /= harmResults.length;
-      if (avgSnr > bestSnr && harmResults[0].snrDb > 4.0) {
+      if (avgSnr > bestSnr && (harmResults.length >= 2 ? avgSnr >= 8.0 : avgSnr >= 12.0)) {
         bestSnr = avgSnr;
         bestFamily = cand.family;
         bestHarmonics = harmResults;
@@ -264,8 +315,6 @@ export function analyzeHumM2(
       }
     }
   }
-
-  const detected = bestHarmonics.length > 0 && bestSnr > 4.0;
 
   // 3. Harmonic Consistency Test: f_k / k agree within 0.06 Hz
   let harmonicConsistency = false;
@@ -278,6 +327,11 @@ export function analyzeHumM2(
   } else if (bestHarmonics.length === 1) {
     harmonicConsistency = true;
   }
+
+  const detected =
+    bestHarmonics.length > 0 &&
+    harmonicConsistency &&
+    (bestHarmonics.length >= 2 ? bestSnr >= 9.0 : bestSnr >= 14.0);
 
   // 4. Cramér-Rao 95% Confidence Interval
   const std = Math.sqrt(bestVar);

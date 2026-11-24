@@ -100,13 +100,13 @@ export function detectCodecCutoff(
   const avgVoice = countVoice > 0 ? energyVoice / countVoice : 1e-9;
   const avgUltra = countUltra > 0 ? energyUltra / countUltra : 1e-12;
 
-  // If energy above 17 kHz drops by > 45 dB relative to 12-15 kHz and is near zero:
+  // If energy above 17 kHz drops by > 25 dB relative to 12-15 kHz (typical messaging codec barrier):
   const ratio = avgUltra / Math.max(1e-12, avgVoice);
-  if (ratio < 1e-4 && avgUltra < 1e-10) {
+  if (ratio < 3e-3 && avgUltra < 1e-4 && avgVoice > 1e-10) {
     // Locate steep transition edge
     let cutoff = 16500;
     for (let b = Math.floor(15000 / hzPerBin); b < Math.floor(18000 / hzPerBin); b++) {
-      if (psd[b] < avgVoice * 0.01) {
+      if (psd[b] < avgVoice * 0.1) {
         cutoff = Math.round(b * hzPerBin);
         break;
       }
