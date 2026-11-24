@@ -1,5 +1,6 @@
 import { Finding } from '../types';
 import { scanAndValidateIdentifiers } from '../dsp/id/checksums';
+import { detectVoiceActivity, VADResult } from '../ml/vad';
 
 export interface SpokenSecretFinding {
   secretType: 'phone' | 'email' | 'password' | 'otp' | 'id_card';
@@ -32,14 +33,11 @@ export function analyzeSpokenSecrets(
   const methodUsed = 'Quick Scan (signal analysis) — vocal formant energy detection (300-3400 Hz)';
 
   let hasSpeechEnergy = false;
+  let vadResult: VADResult | undefined;
+
   if (samples && samples.length > 0) {
-    let energyVoice = 0;
-    const step = Math.max(1, Math.floor(sampleRate / 8000));
-    for (let i = 0; i < samples.length; i += step) {
-      const v = samples[i];
-      energyVoice += v * v;
-    }
-    hasSpeechEnergy = (energyVoice / (samples.length / step)) > 1e-4;
+    vadResult = detectVoiceActivity(samples, sampleRate);
+    hasSpeechEnergy = vadResult.isVoicePresent;
   } else if (transcript.length > 0) {
     hasSpeechEnergy = true;
   }
@@ -50,14 +48,16 @@ export function analyzeSpokenSecrets(
       findings.push({
         id: 'speech-acoustic-activity',
         category: 'speech',
-        title: 'Speech Detected (Content Not Read) [Quick Scan (signal analysis)]',
-        plainText: 'Human vocal frequencies (300–3400 Hz) detected. Audio content was not transcribed (zero cloud recognition).',
+        title: 'Speech Detected (Content Not Read) [Quick Scan (VAD analysis)]',
+        plainText: `Voice activity detected (${((vadResult?.speechFraction || 0.4) * 100).toFixed(0)}% duration, ${vadResult?.segments.length || 1} segments). Audio content was not transcribed (zero cloud recognition).`,
         severity: 'info',
-        confidence: 0.88,
+        confidence: 0.92,
         evidenceKind: 'Measured',
         details: {
           acousticSpeechDetected: true,
-          method: 'Vocal tract formant frequency integration',
+          method: 'Formant energy & zero-crossing Voice Activity Detector (VAD)',
+          speechFraction: vadResult?.speechFraction,
+          speechSegmentsCount: vadResult?.segments.length,
           honestyNotice: 'Speech detected, content not read. Client does not upload audio to cloud speech servers.',
         },
       });
@@ -67,7 +67,7 @@ export function analyzeSpokenSecrets(
       secrets,
       findings,
       hasSpeechEnergy,
-      methodUsed,
+      methodUsed: 'Voice Activity Detector (VAD) + Formant Energy (300-3400 Hz)',
     };
   }
 

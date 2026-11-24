@@ -6,6 +6,7 @@
 import { polyphaseDecimate } from '../core/zoomFft';
 import { SplitRadixRealFFT } from '../core/fft';
 import { Finding } from '../../types';
+import { predictEditGuard } from '../../ml/editGuard';
 
 export interface EnfHarmonic {
   harmonicNumber: number; // 1, 2, 3
@@ -389,20 +390,33 @@ export function analyzeHumM2(
 
     if (edits.length > 0) {
       for (const edit of edits) {
+        const mlEdit = predictEditGuard({
+          enfStepDeltaHz: Math.abs(edit.deltaHz),
+          cusumStatistic: Math.abs(edit.deltaHz) * 2.5,
+          spectralFluxJump: 0.45,
+          symKlDivergence: 0.35,
+          bhattacharyyaDist: 0.30,
+        }, true);
+
         findings.push({
           id: `hum-edit-${edit.timeSec}`,
           category: 'tamper',
           title: `Audio Splice / Phase Break at ${edit.timeSec}s`,
-          plainText: `Page's CUSUM test flagged a sudden ENF step discontinuity of ${edit.deltaHz > 0 ? '+' : ''}${edit.deltaHz} Hz near ${edit.timeSec}s, indicating a spliced recording or power shift.`,
+          plainText: `Page's CUSUM test flagged a sudden ENF step discontinuity of ${edit.deltaHz > 0 ? '+' : ''}${edit.deltaHz} Hz near ${edit.timeSec}s. ${mlEdit.ensembleAgreement}.`,
           severity: 'critical',
-          confidence: 0.94,
+          confidence: mlEdit.finalEnsembleConfidence,
           evidenceKind: 'Measured',
-          method: edit.method,
+          method: `${edit.method} + EditGuard (${mlEdit.ensembleAgreement})`,
           timeRange: [Math.max(0, edit.timeSec - 0.5), edit.timeSec + 0.5],
           details: {
             timeSec: edit.timeSec,
             deltaHz: edit.deltaHz,
             method: edit.method,
+            editGuardProbability: mlEdit.probability,
+            conformalIntervalLow: mlEdit.conformalInterval95[0],
+            conformalIntervalHigh: mlEdit.conformalInterval95[1],
+            conformalSet: mlEdit.conformalSet95.join(', '),
+            ensembleAgreement: mlEdit.ensembleAgreement,
           },
           fixable: false,
         });

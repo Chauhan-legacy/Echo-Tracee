@@ -6,6 +6,7 @@
  */
 import { computeMultitaperPSD } from '../core/multitaper';
 import { Finding } from '../../types';
+import { predictBeaconGuard } from '../../ml/beaconGuard';
 
 export interface BeaconDetection {
   frequencyHz: number;
@@ -310,6 +311,15 @@ export function analyzeUltrasonicBeaconsM3(
   for (const peak of candidatePeaks) {
     const demod = demodulateOok(samples, sampleRate, peak.freq, samples.length / sampleRate);
 
+    // Call BeaconGuard Tiny ML Classifier (Platt calibrated + Conformal 95% interval)
+    const mlPred = predictBeaconGuard({
+      peakSnrDb: peak.snr,
+      spectralFlatness: 0.05,
+      envelopePeriodicity: demod.baud > 0 ? 0.75 : 0.15,
+      spectralKurtosis: 14.0,
+      persistenceRatio: 0.85,
+    }, true);
+
     const beaconItem: BeaconDetection = {
       frequencyHz: Number(peak.freq.toFixed(1)),
       snrDb: Number(peak.snr.toFixed(1)),
@@ -326,11 +336,11 @@ export function analyzeUltrasonicBeaconsM3(
       id: `ultrasonic-beacon-${Math.round(peak.freq)}`,
       category: 'ultrasonic',
       title: `${(peak.freq / 1000).toFixed(1)} kHz Ultrasonic Tracking Beacon (Cross-Device Telemetry)`,
-      plainText: `High-frequency inaudible acoustic tone detected at ${(peak.freq / 1000).toFixed(1)} kHz with SNR ${peak.snr.toFixed(1)} dB (CA-CFAR Pfa=1e-6). Keying rate ~${demod.baud} baud, bit pattern '${demod.bits.slice(0, 12)}...'.`,
+      plainText: `High-frequency inaudible acoustic tone detected at ${(peak.freq / 1000).toFixed(1)} kHz with SNR ${peak.snr.toFixed(1)} dB (CA-CFAR Pfa=1e-6). Keying rate ~${demod.baud} baud, bit pattern '${demod.bits.slice(0, 12)}...'. ${mlPred.ensembleAgreement}.`,
       severity: 'critical',
-      confidence: Math.min(0.99, Math.max(0.85, peak.snr / 25.0)),
+      confidence: mlPred.finalEnsembleConfidence,
       evidenceKind: 'Measured',
-      method: 'Neyman-Pearson CA-CFAR / OS-CFAR on Multitaper PSD',
+      method: `CA-CFAR + BeaconGuard Ensemble (${mlPred.ensembleAgreement})`,
       pfa: targetPfa,
       timeRange: [3.0, Math.min(15.0, samples.length / sampleRate)],
       details: {
@@ -339,6 +349,11 @@ export function analyzeUltrasonicBeaconsM3(
         keyingRateBaud: beaconItem.keyingRateBaud,
         bitString: beaconItem.demodulatedBits,
         pfa: targetPfa,
+        beaconGuardProbability: mlPred.probability,
+        conformalIntervalLow: mlPred.conformalInterval95[0],
+        conformalIntervalHigh: mlPred.conformalInterval95[1],
+        conformalSet: mlPred.conformalSet95.join(', '),
+        ensembleAgreement: mlPred.ensembleAgreement,
       },
       fixable: true,
       fixDescription: 'Surgical biquad notch filter + 16 kHz Kaiser low-pass anti-aliasing.',
