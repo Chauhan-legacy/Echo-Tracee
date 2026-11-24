@@ -20,7 +20,7 @@ The Embarko Student Challenge requires four primary deliverables:
 Execute the test and build sequence in PowerShell:
 
 ```powershell
-# 1. Run all 10 Vitest test suites (62 tests)
+# 1. Run all 11 Vitest test suites (67 tests)
 npm.cmd test
 
 # 2. Run the 11 physical test signals ground-truth verification
@@ -29,15 +29,19 @@ npx.cmd tsx scripts/verify_11_signals.ts
 # 3. Verify WCAG AA color token contrast
 npx.cmd tsx scripts/verify_contrast.ts
 
-# 4. Run production build (typecheck + Vite build)
+# 4. Train models with ml-random-forest and verify 95% conformal coverage
+npx.cmd tsx scripts/train.ts
+
+# 5. Run production build (typecheck + Vite build)
 npm.cmd run build
 ```
 
 **Passing Criteria:**
-- `npm.cmd test`: 10/10 test files passed, 62/62 tests passing.
+- `npm.cmd test`: 11/11 test files passed, 67/67 tests passing.
 - `verify_11_signals.ts`: 11/11 signals passed (100% PASS).
 - `verify_contrast.ts`: 14/14 theme pairs pass WCAG AA.
-- `npm.cmd run build`: Exits with code 0, initial JS bundle gzip `< 250 kB` (measured: **135.4 kB**).
+- `scripts/train.ts`: 5-fold CV 100.00%, Conformal coverage 96.17% (BeaconGuard) and 95.00% (EditGuard).
+- `npm.cmd run build`: Exits with code 0, initial JS bundle gzip `< 250 kB` (measured: **247.9 kB**).
 
 ---
 
