@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Header } from './components/Header';
+import { DesktopTopBar } from './components/DesktopTopBar';
+import { LeftIconRail } from './components/LeftIconRail';
 import { BottomTabBar, ActiveTab } from './components/BottomTabBar';
 import { ScanConsole } from './components/ScanConsole';
 import { SpectrogramViewer } from './components/SpectrogramViewer';
 import { LeakScoreGauge } from './components/LeakScoreGauge';
 import { FindingCard } from './components/FindingCard';
+import { HowWeKnowPanel } from './components/HowWeKnowPanel';
 import { WorldMapCard } from './components/WorldMapCard';
 import { FixerViewer } from './components/FixerViewer';
 import { ShareCardModal } from './components/ShareCardModal';
@@ -14,6 +16,7 @@ import { EvidenceGraph } from './components/EvidenceGraph';
 import { TimelineViewer } from './components/TimelineViewer';
 import { ETBenchPage } from './components/ETBenchPage';
 import { SelfAuditPage } from './components/SelfAuditPage';
+import { CommandPalette } from './components/CommandPalette';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 import { ScanResult, Finding, FixReport, VisualFindingBox } from './types';
@@ -39,9 +42,14 @@ export const App: React.FC = () => {
   const [fixReport, setFixReport] = useState<FixReport | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isNetworkAuditOpen, setIsNetworkAuditOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isTourActive, setIsTourActive] = useState(false);
   const [isRecordingMode, setIsRecordingMode] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Brushing and Linking state: currently hovered or selected finding
+  const [hoveredFindingId, setHoveredFindingId] = useState<string | null>(null);
+  const [selectedFindingId, setSelectedFindingId] = useState<string | null>(null);
 
   // Manual blur box drawing state
   const [isDrawingBlurBox, setIsDrawingBlurBox] = useState(false);
@@ -49,7 +57,7 @@ export const App: React.FC = () => {
   const [currentDrawBox, setCurrentDrawBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const frameCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Helper to re-render frame canvas with bounding boxes
+  // Redraw frame canvas with analyst workbench boxes
   const redrawFrameCanvas = useCallback(() => {
     const canvas = frameCanvasRef.current;
     if (!canvas || !videoFrames[0]) return;
@@ -68,17 +76,17 @@ export const App: React.FC = () => {
         const bh = box.height * canvas.height;
 
         const isManual = box.label.includes('Manual') || box.label.includes('User');
-        ctx.strokeStyle = isManual ? '#00F0FF' : '#FF3366';
+        ctx.strokeStyle = isManual ? '#174D35' : '#A32A1F';
         ctx.lineWidth = 2;
         ctx.setLineDash(isManual ? [6, 3] : [4, 2]);
         ctx.strokeRect(bx, by, bw, bh);
         ctx.setLineDash([]);
 
-        ctx.fillStyle = isManual ? 'rgba(0, 240, 255, 0.85)' : 'rgba(255, 51, 102, 0.85)';
-        ctx.fillRect(bx, Math.max(0, by - 16), Math.max(bw, 140), 16);
-        ctx.fillStyle = isManual ? '#000000' : '#FFFFFF';
-        ctx.font = 'bold 9px monospace';
-        ctx.fillText(box.label, bx + 4, Math.max(11, by - 4));
+        ctx.fillStyle = isManual ? '#174D35' : '#A32A1F';
+        ctx.fillRect(bx, Math.max(0, by - 18), Math.max(bw, 140), 18);
+        ctx.fillStyle = '#FAF5EB';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText(box.label, bx + 4, Math.max(13, by - 5));
       }
 
       if (currentDrawBox) {
@@ -87,11 +95,11 @@ export const App: React.FC = () => {
         const bw = currentDrawBox.w * canvas.width;
         const bh = currentDrawBox.h * canvas.height;
 
-        ctx.strokeStyle = '#00F0FF';
+        ctx.strokeStyle = '#174D35';
         ctx.lineWidth = 2;
         ctx.setLineDash([4, 2]);
         ctx.strokeRect(bx, by, bw, bh);
-        ctx.fillStyle = 'rgba(0, 240, 255, 0.2)';
+        ctx.fillStyle = 'rgba(23, 77, 53, 0.25)';
         ctx.fillRect(bx, by, bw, bh);
         ctx.setLineDash([]);
       }
@@ -142,7 +150,9 @@ export const App: React.FC = () => {
       try { navigator.vibrate(35); } catch {}
     }
 
-    // 1. In-browser procedural generator (sub-200ms)
+    const startPerf = performance.now();
+
+    // 1. In-browser procedural generator
     const demoData = await generateIncident001();
     setVideoFrames(demoData.videoFrames);
     setAudioChannelData(demoData.audioBuffer);
@@ -181,6 +191,7 @@ export const App: React.FC = () => {
         severity: 'critical',
         confidence: 1.0,
         evidenceKind: 'Measured',
+        method: 'Direct Container Inspection (moov.trak.mdia)',
         details: {
           latitude: demoData.metadata.gps.latitude,
           longitude: demoData.metadata.gps.longitude,
@@ -194,6 +205,7 @@ export const App: React.FC = () => {
     }
 
     const leakScore = calculateLeakScore(allFindings);
+    const elapsedMs = Math.round(performance.now() - startPerf);
 
     const result: ScanResult = {
       sourceName: 'INCIDENT-001: The Hostel Reel [DEMO]',
@@ -203,6 +215,8 @@ export const App: React.FC = () => {
       leakScore,
       metadata: demoData.metadata,
       visualBoxes: frameRes.visualBoxes.length > 0 ? frameRes.visualBoxes : demoData.visualBoxes,
+      analysisTimeMs: elapsedMs,
+      realtimeFactor: Number((elapsedMs / (demoData.duration * 1000)).toFixed(3)),
       audioMetrics: {
         sampleRate: demoData.sampleRate,
         channels: 1,
@@ -221,12 +235,14 @@ export const App: React.FC = () => {
     }
   }, []);
 
-  // Robust User File Ingestion (MP4, MOV, WebM, WAV, MP3, M4A, JPG)
+  // Robust User File Ingestion
   const handleUploadFile = useCallback(async (file: File) => {
     setIsScanning(true);
     setFixReport(null);
     setCleanAudioData(null);
     setErrorMessage(null);
+
+    const startPerf = performance.now();
 
     try {
       const media = await ingestUserFile(file);
@@ -268,6 +284,7 @@ export const App: React.FC = () => {
           severity: 'critical',
           confidence: 1.0,
           evidenceKind: 'Measured',
+          method: 'Direct Container Inspection (moov.trak.mdia)',
           details: {
             latitude: media.metadata.gps.latitude,
             longitude: media.metadata.gps.longitude,
@@ -279,6 +296,7 @@ export const App: React.FC = () => {
       }
 
       const leakScore = calculateLeakScore(allFindings);
+      const elapsedMs = Math.round(performance.now() - startPerf);
 
       const result: ScanResult = {
         sourceName: file.name,
@@ -288,6 +306,8 @@ export const App: React.FC = () => {
         leakScore,
         metadata: media.metadata,
         visualBoxes: frameRes.visualBoxes,
+        analysisTimeMs: elapsedMs,
+        realtimeFactor: Number((elapsedMs / (Math.max(1, media.duration) * 1000)).toFixed(3)),
         audioMetrics: {
           sampleRate: media.sampleRate,
           channels: 1,
@@ -306,7 +326,7 @@ export const App: React.FC = () => {
     }
   }, []);
 
-  // Export results.json for python validate.py
+  // Export results.json
   const handleExportResultsJson = () => {
     if (!scanResult) return;
 
@@ -345,9 +365,7 @@ export const App: React.FC = () => {
     setFixReport(report);
     setVideoFrames(cleanFrames);
 
-    // Save cleaned audio buffer for the draggable before/after split slider
     if (audioChannelData) {
-      // Invert tracker tone via notch filter
       const clean = new Float32Array(audioChannelData.length);
       clean.set(audioChannelData);
       setCleanAudioData(clean);
@@ -372,7 +390,7 @@ export const App: React.FC = () => {
   // Dynamic frequency annotations strictly computed from current file findings
   const dynamicHighlightFreqs = useMemo(() => {
     if (!scanResult) return [];
-    const list: { freq: number; label: string; color: string }[] = [];
+    const list: { freq: number; label: string; color: string; findingId?: string }[] = [];
 
     // 1. Ultrasonic tone findings
     const ultraFindings = scanResult.findings.filter(f => f.category === 'ultrasonic' && f.severity === 'critical');
@@ -382,7 +400,8 @@ export const App: React.FC = () => {
         list.push({
           freq,
           label: `${(freq / 1000).toFixed(1)} kHz Tracker Beacon`,
-          color: '#FF3366',
+          color: '#A32A1F',
+          findingId: uf.id,
         });
       }
     }
@@ -395,14 +414,15 @@ export const App: React.FC = () => {
       list.push({
         freq: humHz,
         label: `${humHz.toFixed(2)} Hz Mains Hum ${grid ? `(${grid})` : ''}`,
-        color: '#FFB800',
+        color: '#7A4E00',
+        findingId: humFinding?.id,
       });
     }
 
     return list;
   }, [scanResult]);
 
-  // Findings sorted by severity: Critical first, then Warning, then Info (Requirement D.9)
+  // Findings sorted by severity: Critical first, then Warning, then Info
   const sortedFindings = useMemo(() => {
     if (!scanResult) return [];
     const order: Record<string, number> = { critical: 0, warn: 1, info: 2 };
@@ -413,375 +433,474 @@ export const App: React.FC = () => {
     });
   }, [scanResult]);
 
+  // Currently inspected finding for the docked "How We Know" panel
+  const activeInspectedFinding = useMemo(() => {
+    if (hoveredFindingId) {
+      return sortedFindings.find(f => f.id === hoveredFindingId) || null;
+    }
+    if (selectedFindingId) {
+      return sortedFindings.find(f => f.id === selectedFindingId) || null;
+    }
+    return sortedFindings[0] || null;
+  }, [hoveredFindingId, selectedFindingId, sortedFindings]);
+
+  // Keyboard navigation for findings (J / K)
+  const handleNextFinding = () => {
+    if (sortedFindings.length === 0) return;
+    const currentIndex = sortedFindings.findIndex(f => f.id === selectedFindingId);
+    const nextIndex = (currentIndex + 1) % sortedFindings.length;
+    setSelectedFindingId(sortedFindings[nextIndex].id);
+  };
+
+  const handlePrevFinding = () => {
+    if (sortedFindings.length === 0) return;
+    const currentIndex = sortedFindings.findIndex(f => f.id === selectedFindingId);
+    const prevIndex = currentIndex <= 0 ? sortedFindings.length - 1 : currentIndex - 1;
+    setSelectedFindingId(sortedFindings[prevIndex].id);
+  };
+
   return (
-    <div className="min-h-screen bg-[#080B11] text-[#E5E9F0] pb-24 md:pb-12 scanlines">
-      {/* Header */}
-      <Header
-        activeTab={activeTab}
-        onSelectTab={setActiveTab}
-        onStartTour={() => {
-          if (!scanResult) handleLoadIncident001();
-          setIsTourActive(true);
-        }}
+    <div className="min-h-screen bg-beige-page text-forest-ink pb-24 md:pb-12 flex flex-col">
+      {/* Desktop Top Bar (Case name, SHA, Duration, RTF, Proof) */}
+      <DesktopTopBar
+        scanResult={scanResult}
         isScanning={isScanning}
         onOpenNetworkAudit={() => setIsNetworkAuditOpen(true)}
         isRecordingMode={isRecordingMode}
         onToggleRecordingMode={handleToggleRecordingMode}
+        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
       />
 
-      {/* Main Content Area: 1560px Max Width (Requirement B.1) */}
-      <main className="mx-auto max-w-[1560px] px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {activeTab === 'scan' && (
-          <div className="space-y-8">
-            <ErrorBoundary fallbackTitle="Could not load Ingest Console">
-              <ScanConsole
-                onLoadIncident001={handleLoadIncident001}
-                onUploadFile={handleUploadFile}
-                isScanning={isScanning}
-                scanResult={scanResult}
-                onExportResultsJson={handleExportResultsJson}
-                errorMessage={errorMessage}
-              />
-            </ErrorBoundary>
+      {/* Main Container with Left Icon Rail on Desktop */}
+      <div className="flex-1 flex w-full">
+        <LeftIconRail
+          activeTab={activeTab}
+          onSelectTab={setActiveTab}
+          findingsCount={criticalFindings.length + warnFindings.length}
+        />
 
-            {scanResult && (
-              /* Requirement B.1 & B.3: Desktop 12-column grid (8/4) & Phone single-column order */
-              <div className="flex flex-col lg:grid lg:grid-cols-12 lg:gap-8 gap-6">
-                {/* Left 8 columns on Desktop */}
-                <div className="contents lg:block lg:col-span-8 lg:space-y-8">
-                  {/* Item 4 on Phone: Spectrogram */}
-                  <div className="order-4 lg:order-none space-y-2">
-                    <ErrorBoundary fallbackTitle="Could not render Spectrogram">
-                      <SpectrogramViewer
-                        channelData={audioChannelData}
-                        cleanChannelData={cleanAudioData}
-                        sampleRate={scanResult.audioMetrics.sampleRate}
-                        isScanning={isScanning}
-                        highlightFreqs={dynamicHighlightFreqs}
-                        isFixed={fixReport !== null}
-                      />
-                    </ErrorBoundary>
-                  </div>
+        {/* Main Content Area (Max 1560px, 32px gutters) */}
+        <main className="flex-1 mx-auto max-w-[1560px] px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+          {activeTab === 'scan' && (
+            <div className="space-y-8">
+              <ErrorBoundary fallbackTitle="Could not load Ingest Console">
+                <ScanConsole
+                  onLoadIncident001={handleLoadIncident001}
+                  onUploadFile={handleUploadFile}
+                  isScanning={isScanning}
+                  scanResult={scanResult}
+                  onExportResultsJson={handleExportResultsJson}
+                  onOpenNetworkAudit={() => setIsNetworkAuditOpen(true)}
+                  errorMessage={errorMessage}
+                />
+              </ErrorBoundary>
 
-                  {/* Item 5 on Phone: Video Frame Preview with bounding boxes */}
-                  {videoFrames.length > 0 && (
-                    <div className="order-5 lg:order-none rounded-2xl border border-white/5 bg-[#0D121F] p-5 shadow-xl space-y-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-3">
-                        <div>
-                          <span className="font-display text-base font-bold text-white tracking-wide">
-                            Frame Optical X-Ray (Quick Scan)
-                          </span>
-                          <p className="text-xs text-term-dim">
-                            Approximate skin chrominance heuristic. Use manual tool to add custom blur areas.
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => setIsDrawingBlurBox(!isDrawingBlurBox)}
-                            className={`min-h-[44px] rounded-xl px-3.5 py-1.5 text-xs font-bold transition flex items-center gap-1.5 ${
-                              isDrawingBlurBox
-                                ? 'bg-cyan text-black shadow-glow-cyan'
-                                : 'border border-cyan/40 bg-cyan/10 text-cyan hover:bg-cyan/20'
-                            }`}
-                          >
-                            <span>{isDrawingBlurBox ? '✓ Done Drawing' : '+ Draw Blur Box'}</span>
-                          </button>
-                          {scanResult.visualBoxes.length > 0 && (
+              {scanResult && (
+                /* Desktop 12-column grid (8/4) & Phone single-column order */
+                <div className="flex flex-col lg:grid lg:grid-cols-12 lg:gap-8 gap-6">
+                  {/* Left 8 columns on Desktop */}
+                  <div className="contents lg:block lg:col-span-8 lg:space-y-8">
+                    {/* Item 4 on Phone: Spectrogram */}
+                    <div className="order-4 lg:order-none space-y-2">
+                      <ErrorBoundary fallbackTitle="Could not render Spectrogram">
+                        <SpectrogramViewer
+                          channelData={audioChannelData}
+                          cleanChannelData={cleanAudioData}
+                          sampleRate={scanResult.audioMetrics.sampleRate}
+                          isScanning={isScanning}
+                          highlightFreqs={dynamicHighlightFreqs}
+                          isFixed={fixReport !== null}
+                          hoveredFindingId={hoveredFindingId || selectedFindingId}
+                          onHoverFinding={setHoveredFindingId}
+                        />
+                      </ErrorBoundary>
+                    </div>
+
+                    {/* Synchronized Timeline Strip */}
+                    <div className="order-7 lg:order-none">
+                      <ErrorBoundary fallbackTitle="Could not load Timeline">
+                        <TimelineViewer
+                          findings={scanResult.findings}
+                          duration={scanResult.duration}
+                          visualBoxes={scanResult.visualBoxes}
+                          hoveredFindingId={hoveredFindingId || selectedFindingId}
+                        />
+                      </ErrorBoundary>
+                    </div>
+
+                    {/* Item 5 on Phone: Video Frame Preview with manual bounding boxes */}
+                    {videoFrames.length > 0 && (
+                      <div className="order-5 lg:order-none rounded-2xl border border-beige-hairline bg-beige-card p-5 shadow-panel space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-beige-hairline pb-3">
+                          <div>
+                            <span className="font-display text-base font-bold text-forest-ink">
+                              Frame Optical X-Ray (Visual Layer)
+                            </span>
+                            <p className="text-xs text-forest-muted">
+                              Approximate skin chrominance heuristic. Draw custom blur boxes to redact misses.
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
                             <button
-                              onClick={() => {
+                              onClick={() => setIsDrawingBlurBox(!isDrawingBlurBox)}
+                              className={`min-h-[44px] rounded-xl px-3.5 py-1.5 text-xs font-bold transition flex items-center gap-1.5 ${
+                                isDrawingBlurBox
+                                  ? 'bg-forest text-lime shadow-panel'
+                                  : 'border border-forest bg-forest/10 text-forest hover:bg-forest/20'
+                              }`}
+                            >
+                              <span>{isDrawingBlurBox ? '✓ Done Drawing' : '+ Draw Blur Box'}</span>
+                            </button>
+                            {scanResult.visualBoxes.length > 0 && (
+                              <button
+                                onClick={() => {
+                                  setScanResult({
+                                    ...scanResult,
+                                    visualBoxes: [],
+                                  });
+                                }}
+                                className="min-h-[44px] rounded-xl border border-beige-hairline bg-beige-sunken px-3 py-1.5 text-xs text-forest-muted hover:text-forest-ink"
+                                title="Clear all bounding boxes"
+                              >
+                                Clear Boxes
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {isDrawingBlurBox && (
+                          <div className="rounded-xl border border-forest/30 bg-forest/10 px-3 py-2 text-xs text-forest flex items-center justify-between animate-pulse">
+                            <span>✏ Drag over video frame to add custom blur area</span>
+                            <span className="text-[11px] text-forest-muted">Release mouse/finger to finish</span>
+                          </div>
+                        )}
+
+                        <div className="relative overflow-hidden rounded-xl bg-forest-deep border border-forest/30 flex items-center justify-center shadow-data">
+                          <canvas
+                            ref={frameCanvasRef}
+                            style={{ cursor: isDrawingBlurBox ? 'crosshair' : 'default', touchAction: 'none' }}
+                            onMouseDown={(e) => {
+                              if (!isDrawingBlurBox) return;
+                              const coords = getCanvasCoords(e);
+                              setDrawStart(coords);
+                              setCurrentDrawBox({ x: coords.x, y: coords.y, w: 0, h: 0 });
+                            }}
+                            onMouseMove={(e) => {
+                              if (!isDrawingBlurBox || !drawStart) return;
+                              const coords = getCanvasCoords(e);
+                              const x = Math.min(drawStart.x, coords.x);
+                              const y = Math.min(drawStart.y, coords.y);
+                              const w = Math.abs(coords.x - drawStart.x);
+                              const h = Math.abs(coords.y - drawStart.y);
+                              setCurrentDrawBox({ x, y, w, h });
+                            }}
+                            onMouseUp={() => {
+                              if (!isDrawingBlurBox || !drawStart || !currentDrawBox) return;
+                              if (currentDrawBox.w > 0.02 && currentDrawBox.h > 0.02 && scanResult) {
+                                const newBox: VisualFindingBox = {
+                                  x: Number(currentDrawBox.x.toFixed(3)),
+                                  y: Number(currentDrawBox.y.toFixed(3)),
+                                  width: Number(currentDrawBox.w.toFixed(3)),
+                                  height: Number(currentDrawBox.h.toFixed(3)),
+                                  label: 'Manual Blur Area (User Defined)',
+                                  type: 'badge',
+                                  timestamp: 1.0,
+                                };
                                 setScanResult({
                                   ...scanResult,
-                                  visualBoxes: [],
+                                  visualBoxes: [...scanResult.visualBoxes, newBox],
                                 });
-                              }}
-                              className="min-h-[44px] rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-term-dim hover:text-white"
-                              title="Clear all bounding boxes"
-                            >
-                              Clear Boxes
-                            </button>
-                          )}
+                              }
+                              setDrawStart(null);
+                              setCurrentDrawBox(null);
+                            }}
+                            onTouchStart={(e) => {
+                              if (!isDrawingBlurBox) return;
+                              const coords = getCanvasCoords(e);
+                              setDrawStart(coords);
+                              setCurrentDrawBox({ x: coords.x, y: coords.y, w: 0, h: 0 });
+                            }}
+                            onTouchMove={(e) => {
+                              if (!isDrawingBlurBox || !drawStart) return;
+                              const coords = getCanvasCoords(e);
+                              const x = Math.min(drawStart.x, coords.x);
+                              const y = Math.min(drawStart.y, coords.y);
+                              const w = Math.abs(coords.x - drawStart.x);
+                              const h = Math.abs(coords.y - drawStart.y);
+                              setCurrentDrawBox({ x, y, w, h });
+                            }}
+                            onTouchEnd={() => {
+                              if (!isDrawingBlurBox || !drawStart || !currentDrawBox) return;
+                              if (currentDrawBox.w > 0.02 && currentDrawBox.h > 0.02 && scanResult) {
+                                const newBox: VisualFindingBox = {
+                                  x: Number(currentDrawBox.x.toFixed(3)),
+                                  y: Number(currentDrawBox.y.toFixed(3)),
+                                  width: Number(currentDrawBox.w.toFixed(3)),
+                                  height: Number(currentDrawBox.h.toFixed(3)),
+                                  label: 'Manual Blur Area (User Defined)',
+                                  type: 'badge',
+                                  timestamp: 1.0,
+                                };
+                                setScanResult({
+                                  ...scanResult,
+                                  visualBoxes: [...scanResult.visualBoxes, newBox],
+                                });
+                              }
+                              setDrawStart(null);
+                              setCurrentDrawBox(null);
+                            }}
+                            className="h-auto max-h-[340px] w-full object-contain select-none"
+                          />
                         </div>
                       </div>
+                    )}
 
-                      {isDrawingBlurBox && (
-                        <div className="rounded-xl border border-cyan/30 bg-cyan/10 px-3 py-2 text-xs text-cyan flex items-center justify-between animate-pulse">
-                          <span>✏ Drag over video frame to add custom blur area</span>
-                          <span className="text-[11px] text-cyan/70">Release mouse/finger to finish</span>
-                        </div>
-                      )}
+                    {/* Item 6 on Phone: Geolocation Map */}
+                    <div className="order-6 lg:order-none">
+                      <ErrorBoundary fallbackTitle="Could not load Geolocation Radar">
+                        <WorldMapCard metadata={scanResult.metadata} isFixed={fixReport !== null} />
+                      </ErrorBoundary>
+                    </div>
+                  </div>
 
-                      <div className="relative overflow-hidden rounded-xl bg-[#05070D] border border-white/5 flex items-center justify-center">
-                        <canvas
-                          ref={frameCanvasRef}
-                          style={{ cursor: isDrawingBlurBox ? 'crosshair' : 'default', touchAction: 'none' }}
-                          onMouseDown={(e) => {
-                            if (!isDrawingBlurBox) return;
-                            const coords = getCanvasCoords(e);
-                            setDrawStart(coords);
-                            setCurrentDrawBox({ x: coords.x, y: coords.y, w: 0, h: 0 });
-                          }}
-                          onMouseMove={(e) => {
-                            if (!isDrawingBlurBox || !drawStart) return;
-                            const coords = getCanvasCoords(e);
-                            const x = Math.min(drawStart.x, coords.x);
-                            const y = Math.min(drawStart.y, coords.y);
-                            const w = Math.abs(coords.x - drawStart.x);
-                            const h = Math.abs(coords.y - drawStart.y);
-                            setCurrentDrawBox({ x, y, w, h });
-                          }}
-                          onMouseUp={() => {
-                            if (!isDrawingBlurBox || !drawStart || !currentDrawBox) return;
-                            if (currentDrawBox.w > 0.02 && currentDrawBox.h > 0.02 && scanResult) {
-                              const newBox: VisualFindingBox = {
-                                x: Number(currentDrawBox.x.toFixed(3)),
-                                y: Number(currentDrawBox.y.toFixed(3)),
-                                width: Number(currentDrawBox.w.toFixed(3)),
-                                height: Number(currentDrawBox.h.toFixed(3)),
-                                label: 'Manual Blur Area (User Defined)',
-                                type: 'badge',
-                                timestamp: 1.0,
-                              };
-                              setScanResult({
-                                ...scanResult,
-                                visualBoxes: [...scanResult.visualBoxes, newBox],
-                              });
-                            }
-                            setDrawStart(null);
-                            setCurrentDrawBox(null);
-                          }}
-                          onTouchStart={(e) => {
-                            if (!isDrawingBlurBox) return;
-                            const coords = getCanvasCoords(e);
-                            setDrawStart(coords);
-                            setCurrentDrawBox({ x: coords.x, y: coords.y, w: 0, h: 0 });
-                          }}
-                          onTouchMove={(e) => {
-                            if (!isDrawingBlurBox || !drawStart) return;
-                            const coords = getCanvasCoords(e);
-                            const x = Math.min(drawStart.x, coords.x);
-                            const y = Math.min(drawStart.y, coords.y);
-                            const w = Math.abs(coords.x - drawStart.x);
-                            const h = Math.abs(coords.y - drawStart.y);
-                            setCurrentDrawBox({ x, y, w, h });
-                          }}
-                          onTouchEnd={() => {
-                            if (!isDrawingBlurBox || !drawStart || !currentDrawBox) return;
-                            if (currentDrawBox.w > 0.02 && currentDrawBox.h > 0.02 && scanResult) {
-                              const newBox: VisualFindingBox = {
-                                x: Number(currentDrawBox.x.toFixed(3)),
-                                y: Number(currentDrawBox.y.toFixed(3)),
-                                width: Number(currentDrawBox.w.toFixed(3)),
-                                height: Number(currentDrawBox.h.toFixed(3)),
-                                label: 'Manual Blur Area (User Defined)',
-                                type: 'badge',
-                                timestamp: 1.0,
-                              };
-                              setScanResult({
-                                ...scanResult,
-                                visualBoxes: [...scanResult.visualBoxes, newBox],
-                              });
-                            }
-                            setDrawStart(null);
-                            setCurrentDrawBox(null);
-                          }}
-                          className="h-auto max-h-[340px] w-full object-contain select-none"
+                  {/* Right 4 columns on Desktop: Score Hero, Findings List, Docked Inspector */}
+                  <div className="contents lg:block lg:col-span-4 lg:space-y-6">
+                    {/* Item 1 on Phone: Score Hero */}
+                    <div className="order-1 lg:order-none">
+                      <ErrorBoundary fallbackTitle="Could not calculate Leak Score">
+                        <LeakScoreGauge
+                          score={scanResult.leakScore}
+                          findings={scanResult.findings}
+                          isFixed={fixReport !== null}
+                          onFixAll={() => setActiveTab('fix')}
                         />
+                      </ErrorBoundary>
+                    </div>
+
+                    {/* Item 3 on Phone: Swipeable Finding Cards (stacked on Desktop) */}
+                    <div className="order-3 lg:order-none space-y-3">
+                      <div className="flex items-center justify-between px-1">
+                        <h3 className="font-display text-base font-bold text-forest-ink">
+                          Privacy Leaks ({sortedFindings.length})
+                        </h3>
+                        <span className="text-xs text-forest-muted lg:hidden">Swipe cards ➔</span>
                       </div>
+
+                      {/* Horizontal scroll snap on mobile, stacked on desktop */}
+                      <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-3 pt-1 -mx-4 px-4 sm:mx-0 sm:px-0 lg:block lg:space-y-4 lg:overflow-x-visible">
+                        {sortedFindings.map((f: Finding) => (
+                          <div key={f.id} className="min-w-[280px] max-w-[320px] snap-center shrink-0 lg:min-w-0 lg:max-w-none">
+                            <FindingCard
+                              finding={f}
+                              onFix={() => setActiveTab('fix')}
+                              isFixed={fixReport !== null}
+                              isHovered={hoveredFindingId === f.id || selectedFindingId === f.id}
+                              onMouseEnter={() => setHoveredFindingId(f.id)}
+                              onMouseLeave={() => setHoveredFindingId(null)}
+                              onSelect={() => setSelectedFindingId(f.id)}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Docked "How We Know" Inspector Panel */}
+                    <div className="order-8 lg:order-none">
+                      <ErrorBoundary fallbackTitle="Could not load Inspector">
+                        <HowWeKnowPanel
+                          selectedFinding={activeInspectedFinding}
+                          totalFindingsCount={scanResult.findings.length}
+                        />
+                      </ErrorBoundary>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tab: Findings List */}
+          {activeTab === 'findings' && (
+            <div className="space-y-6">
+              {!scanResult ? (
+                <div className="rounded-2xl border border-beige-hairline bg-beige-card p-8 text-center text-forest-muted">
+                  <p>No active scan loaded. Select "Scan Console" and load INCIDENT-001 or upload a file.</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-display text-xl font-bold text-forest-ink">
+                      Privacy Leaks Isolated ({scanResult.findings.length} Total)
+                    </h3>
+                    <button
+                      onClick={() => setActiveTab('fix')}
+                      className="rounded-xl border border-forest bg-forest px-4 py-2 font-display text-xs font-bold text-lime hover:bg-forest-deep transition"
+                    >
+                      Go to Fixer →
+                    </button>
+                  </div>
+
+                  {criticalFindings.length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-brick flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full bg-brick animate-ping" />
+                        Critical Exposures ({criticalFindings.length})
+                      </h4>
+                      {criticalFindings.map(f => (
+                        <FindingCard
+                          key={f.id}
+                          finding={f}
+                          onFix={() => setActiveTab('fix')}
+                          isHovered={selectedFindingId === f.id}
+                          onSelect={() => setSelectedFindingId(f.id)}
+                        />
+                      ))}
                     </div>
                   )}
 
-                  {/* Item 6 on Phone: Geolocation Map */}
-                  <div className="order-6 lg:order-none">
-                    <ErrorBoundary fallbackTitle="Could not load Geolocation Radar">
-                      <WorldMapCard metadata={scanResult.metadata} isFixed={fixReport !== null} />
-                    </ErrorBoundary>
-                  </div>
-
-                  {/* Timeline (Desktop view & mobile order-7) */}
-                  <div className="order-7 lg:order-none">
-                    <ErrorBoundary fallbackTitle="Could not load Timeline">
-                      <TimelineViewer
-                        findings={scanResult.findings}
-                        duration={scanResult.duration}
-                        visualBoxes={scanResult.visualBoxes}
-                      />
-                    </ErrorBoundary>
-                  </div>
-                </div>
-
-                {/* Right 4 columns on Desktop */}
-                <div className="contents lg:block lg:col-span-4 lg:space-y-6">
-                  {/* Item 1 on Phone: Score Hero (includes full-width Fix button) */}
-                  <div className="order-1 lg:order-none">
-                    <ErrorBoundary fallbackTitle="Could not calculate Leak Score">
-                      <LeakScoreGauge
-                        score={scanResult.leakScore}
-                        findings={scanResult.findings}
-                        isFixed={fixReport !== null}
-                        onFixAll={() => setActiveTab('fix')}
-                      />
-                    </ErrorBoundary>
-                  </div>
-
-                  {/* Item 3 on Phone: Swipeable Finding Cards (stacked on Desktop) */}
-                  <div className="order-3 lg:order-none space-y-3">
-                    <div className="flex items-center justify-between px-1">
-                      <h3 className="font-display text-base font-bold text-white tracking-wide">
-                        Privacy Leaks ({sortedFindings.length})
-                      </h3>
-                      <span className="text-xs text-term-dim lg:hidden">Swipe cards ➔</span>
-                    </div>
-
-                    {/* Horizontal scroll snap on mobile, stacked on desktop */}
-                    <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-3 pt-1 -mx-4 px-4 sm:mx-0 sm:px-0 lg:block lg:space-y-4 lg:overflow-x-visible">
-                      {sortedFindings.map((f: Finding) => (
-                        <div key={f.id} className="min-w-[280px] max-w-[320px] snap-center shrink-0 lg:min-w-0 lg:max-w-none">
-                          <FindingCard finding={f} onFix={() => setActiveTab('fix')} isFixed={fixReport !== null} />
-                        </div>
+                  {warnFindings.length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-ochre">
+                        Potential Privacy Indicators ({warnFindings.length})
+                      </h4>
+                      {warnFindings.map(f => (
+                        <FindingCard
+                          key={f.id}
+                          finding={f}
+                          onFix={() => setActiveTab('fix')}
+                          isHovered={selectedFindingId === f.id}
+                          onSelect={() => setSelectedFindingId(f.id)}
+                        />
                       ))}
                     </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+                  )}
 
-        {/* Tab: Findings List */}
-        {activeTab === 'findings' && (
-          <div className="space-y-6">
-            {!scanResult ? (
-              <div className="rounded-xl border border-term-border bg-term-card p-8 text-center text-term-dim">
-                <p>No active scan loaded. Select "Scan Console" and load INCIDENT-001 or upload a file.</p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-mono text-base font-bold text-white uppercase tracking-wider">
-                    Privacy Leaks Isolated ({scanResult.findings.length} Total)
+                  {infoFindings.length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-forest">
+                        Observational Acoustic Metrics ({infoFindings.length})
+                      </h4>
+                      {infoFindings.map(f => (
+                        <FindingCard
+                          key={f.id}
+                          finding={f}
+                          isHovered={selectedFindingId === f.id}
+                          onSelect={() => setSelectedFindingId(f.id)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tab: Fixer Hero */}
+          {activeTab === 'fix' && (
+            <div className="space-y-6">
+              {!scanResult ? (
+                <div className="rounded-2xl border border-beige-hairline bg-beige-card p-8 text-center text-forest-muted">
+                  <p>Please load INCIDENT-001 or scan a video before launching the Fixer.</p>
+                </div>
+              ) : (
+                <ErrorBoundary fallbackTitle="Fixer Engine Encountered an Error">
+                  <FixerViewer
+                    scanResult={scanResult}
+                    videoFrames={videoFrames}
+                    audioChannelData={audioChannelData}
+                    sampleRate={scanResult.audioMetrics.sampleRate}
+                    onFixedComplete={handleFixComplete}
+                    existingReport={fixReport}
+                  />
+                </ErrorBoundary>
+              )}
+            </div>
+          )}
+
+          {/* Tab: Share */}
+          {activeTab === 'share' && (
+            <div className="space-y-6">
+              {scanResult ? (
+                <div className="rounded-2xl border border-beige-hairline bg-beige-card p-8 text-center shadow-panel">
+                  <h3 className="font-display text-xl font-bold text-forest-ink mb-2">
+                    Share Cryptographic Privacy Receipt
                   </h3>
+                  <p className="text-sm text-forest-muted max-w-md mx-auto mb-5">
+                    Generate a tamper-evident scorecard signed with Web Crypto ECDSA P-256 to share with #DeployWithEmbarko.
+                  </p>
                   <button
-                    onClick={() => setActiveTab('fix')}
-                    className="rounded-lg border border-cyan bg-cyan/15 px-3 py-1.5 font-mono text-xs font-bold text-cyan hover:bg-cyan/25"
+                    onClick={() => setIsShareModalOpen(true)}
+                    className="rounded-xl bg-lime border-2 border-lime px-6 py-3 font-display text-sm font-bold text-forest shadow-elevated hover:bg-lime-bright transition"
                   >
-                    Go to Fixer →
+                    Open Share Card Generator
                   </button>
                 </div>
+              ) : (
+                <div className="rounded-2xl border border-beige-hairline bg-beige-card p-8 text-center text-forest-muted">
+                  <p>Run a scan to generate your share card.</p>
+                </div>
+              )}
+            </div>
+          )}
 
-                {criticalFindings.length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-[#FF3366] flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-[#FF3366] animate-ping" />
-                      Critical Exposures ({criticalFindings.length})
-                    </h4>
-                    {criticalFindings.map(f => (
-                      <FindingCard key={f.id} finding={f} onFix={() => setActiveTab('fix')} />
-                    ))}
-                  </div>
-                )}
+          {/* Tab: Timeline */}
+          {activeTab === 'timeline' && (
+            <ErrorBoundary fallbackTitle="Could not render Timeline">
+              <TimelineViewer
+                duration={scanResult?.duration || 15.0}
+                findings={scanResult?.findings || []}
+                visualBoxes={scanResult?.visualBoxes || []}
+                hoveredFindingId={hoveredFindingId || selectedFindingId}
+              />
+            </ErrorBoundary>
+          )}
 
-                {warnFindings.length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-[#FFB800]">
-                      Potential Privacy Indicators ({warnFindings.length})
-                    </h4>
-                    {warnFindings.map(f => (
-                      <FindingCard key={f.id} finding={f} onFix={() => setActiveTab('fix')} />
-                    ))}
-                  </div>
-                )}
+          {/* Tab: Evidence Graph */}
+          {activeTab === 'evidence' && (
+            <ErrorBoundary fallbackTitle="Could not render Evidence Graph">
+              <EvidenceGraph findings={scanResult?.findings || []} />
+            </ErrorBoundary>
+          )}
 
-                {infoFindings.length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-cyan">
-                      Observational Acoustic Metrics ({infoFindings.length})
-                    </h4>
-                    {infoFindings.map(f => (
-                      <FindingCard key={f.id} finding={f} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+          {/* Tab: ET-Bench */}
+          {activeTab === 'bench' && (
+            <ErrorBoundary fallbackTitle="Could not load ET-Bench">
+              <ETBenchPage />
+            </ErrorBoundary>
+          )}
 
-        {/* Tab: Fixer Hero */}
-        {activeTab === 'fix' && (
-          <div className="space-y-6">
-            {!scanResult ? (
-              <div className="rounded-xl border border-term-border bg-term-card p-8 text-center text-term-dim">
-                <p>Please load INCIDENT-001 or scan a video before launching the Fixer.</p>
-              </div>
-            ) : (
-              <ErrorBoundary fallbackTitle="Fixer Engine Encountered an Error">
-                <FixerViewer
-                  scanResult={scanResult}
-                  videoFrames={videoFrames}
-                  onFixedComplete={handleFixComplete}
-                  existingReport={fixReport}
-                />
-              </ErrorBoundary>
-            )}
-          </div>
-        )}
+          {/* Tab: Self-Audit */}
+          {activeTab === 'audit' && (
+            <ErrorBoundary fallbackTitle="Could not load Self-Audit">
+              <SelfAuditPage />
+            </ErrorBoundary>
+          )}
+        </main>
+      </div>
 
-        {/* Tab: Share */}
-        {activeTab === 'share' && (
-          <div className="space-y-6">
-            {scanResult ? (
-              <div className="rounded-xl border border-term-border bg-term-card p-6 text-center">
-                <h3 className="text-lg font-bold text-white mb-2">Share Forensic Verification</h3>
-                <p className="text-xs text-term-dim max-w-md mx-auto mb-4">
-                  Generate a verified cryptographic privacy scorecard to post with #DeployWithEmbarko.
-                </p>
-                <button
-                  onClick={() => setIsShareModalOpen(true)}
-                  className="rounded-xl border border-cyan bg-cyan/20 px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider text-cyan shadow-glow-cyan hover:bg-cyan/30"
-                >
-                  Open Share Card Generator
-                </button>
-              </div>
-            ) : (
-              <div className="rounded-xl border border-term-border bg-term-card p-8 text-center text-term-dim">
-                <p>Run a scan to generate your share card.</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Tab: Timeline */}
-        {activeTab === 'timeline' && (
-          <ErrorBoundary fallbackTitle="Could not render Timeline">
-            <TimelineViewer
-              duration={scanResult?.duration || 15.0}
-              findings={scanResult?.findings || []}
-              visualBoxes={scanResult?.visualBoxes || []}
-            />
-          </ErrorBoundary>
-        )}
-
-        {/* Tab: Evidence Graph */}
-        {activeTab === 'evidence' && (
-          <ErrorBoundary fallbackTitle="Could not render Evidence Graph">
-            <EvidenceGraph findings={scanResult?.findings || []} />
-          </ErrorBoundary>
-        )}
-
-        {/* Tab: ET-Bench */}
-        {activeTab === 'bench' && (
-          <ErrorBoundary fallbackTitle="Could not load ET-Bench">
-            <ETBenchPage />
-          </ErrorBoundary>
-        )}
-
-        {/* Tab: Self-Audit */}
-        {activeTab === 'audit' && (
-          <ErrorBoundary fallbackTitle="Could not load Self-Audit">
-            <SelfAuditPage />
-          </ErrorBoundary>
-        )}
-      </main>
+      {/* Command Palette (Ctrl/Cmd+K) */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        onSelectTab={setActiveTab}
+        onLoadIncident001={handleLoadIncident001}
+        onUploadClick={() => {
+          const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+          input?.click();
+        }}
+        onFixClick={() => setActiveTab('fix')}
+        onShareClick={() => {
+          if (scanResult) setIsShareModalOpen(true);
+          else setActiveTab('share');
+        }}
+        onStartTour={() => {
+          if (!scanResult) handleLoadIncident001();
+          setIsTourActive(true);
+        }}
+        onOpenAudit={() => setIsNetworkAuditOpen(true)}
+        onNextFinding={handleNextFinding}
+        onPrevFinding={handlePrevFinding}
+      />
 
       {/* Share Card Modal */}
       {isShareModalOpen && scanResult && (
@@ -810,7 +929,7 @@ export const App: React.FC = () => {
         }}
       />
 
-      {/* Mobile-first Bottom Tab Bar */}
+      {/* Mobile 4-Step Bottom Tab Bar */}
       <BottomTabBar
         activeTab={activeTab}
         onSelectTab={setActiveTab}

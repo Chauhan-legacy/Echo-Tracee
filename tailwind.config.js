@@ -7,54 +7,50 @@ export default {
   theme: {
     extend: {
       colors: {
-        term: {
-          bg: '#080B11',
-          card: '#0F1420',
-          border: '#1E2638',
-          hover: '#172033',
-          dim: '#8E9BAE',
-          muted: '#4B5565',
+        // V3 Field-notebook & Analyst Workbench Tokens
+        beige: {
+          DEFAULT: '#E8DCC3', // page background (60%)
+          page: '#E8DCC3',
+          card: '#F3EBD8',    // card background
+          sunken: '#DCCFB2',  // recessed wells & inputs
+          hairline: '#C9BB9A',// fine borders & gridlines
         },
-        cyan: {
-          glow: '#00F0FF',
-          DEFAULT: '#00F0FF',
-          dark: '#007A82',
+        forest: {
+          DEFAULT: '#174D35', // structural forest (30%)
+          deep: '#0B281B',    // data panels & spectrogram background
+          ink: '#10291D',     // high-contrast primary text
+          muted: '#3F5E4C',   // secondary labels & captions
         },
-        amber: {
-          glow: '#FFB800',
-          DEFAULT: '#FFB800',
-          dark: '#8C6400',
+        lime: {
+          DEFAULT: '#8BCF55', // accent (10%) - fill only with forest text, or on forest
+          bright: '#98E05E',
+          glow: 'rgba(139, 207, 85, 0.25)',
         },
-        red: {
-          glow: '#FF3366',
-          DEFAULT: '#FF3366',
-          dark: '#8A1530',
+        brick: {
+          DEFAULT: '#A32A1F', // critical findings
+          card: '#F7E7E5',
+          border: '#D9776E',
+        },
+        ochre: {
+          DEFAULT: '#7A4E00', // warning findings
+          card: '#FAF2E4',
+          border: '#D4A855',
+        },
+        cream: {
+          DEFAULT: '#FAF5EB',
+          dark: '#EBE3D3',
         },
       },
       fontFamily: {
         sans: ['InterVariable', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        display: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'Fira Code', 'Courier New', 'monospace'],
+        display: ['Fraunces', 'Georgia', 'serif'],
+        mono: ['"JetBrains Mono"', 'Fira Code', 'monospace'],
       },
       boxShadow: {
-        'glow-cyan': '0 0 15px rgba(0, 240, 255, 0.25)',
-        'glow-amber': '0 0 15px rgba(255, 184, 0, 0.25)',
-        'glow-red': '0 0 15px rgba(255, 51, 102, 0.25)',
-      },
-      animation: {
-        'sweep': 'sweep 3s ease-in-out infinite',
-        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'scanline': 'scanline 8s linear infinite',
-      },
-      keyframes: {
-        sweep: {
-          '0%': { transform: 'translateX(-100%)' },
-          '100%': { transform: 'translateX(100%)' },
-        },
-        scanline: {
-          '0%': { backgroundPosition: '0 0' },
-          '100%': { backgroundPosition: '0 100%' },
-        },
+        'panel': '0 2px 8px rgba(16, 41, 29, 0.08), 0 1px 2px rgba(16, 41, 29, 0.04)',
+        'elevated': '0 8px 24px rgba(16, 41, 29, 0.12), 0 2px 6px rgba(16, 41, 29, 0.06)',
+        'data': 'inset 0 1px 3px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(11, 40, 27, 0.2)',
+        'lime-glow': '0 0 16px rgba(139, 207, 85, 0.35)',
       },
     },
   },

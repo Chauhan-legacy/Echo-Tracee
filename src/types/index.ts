@@ -10,7 +10,9 @@ export type CheckCategory =
   | 'metadata'
   | 'speech'
   | 'scene'
-  | 'doppler';
+  | 'doppler'
+  | 'tamper'
+  | 'id_check';
 
 export interface Finding {
   id: string;
@@ -24,6 +26,16 @@ export interface Finding {
   details: Record<string, string | number | boolean | null | undefined>;
   fixable?: boolean;
   fixDescription?: string;
+
+  // V3 Statistical & Methodological Rigor (M7 / Ensemble)
+  method?: string;
+  effectSize?: number;
+  pValue?: number;
+  pfa?: number;
+  ciLow?: number;
+  ciHigh?: number;
+  modelType?: 'math' | 'model' | 'ensemble';
+  modelAgreement?: string;
 }
 
 export interface ScoreContribution {
@@ -39,9 +51,12 @@ export interface ScoreContribution {
 
 export interface LeakScoreResult {
   totalScore: number; // 0 to 100
+  scoreLow?: number;  // 95% CI low
+  scoreHigh?: number; // 95% CI high
   rating: 'Clean' | 'Low Risk' | 'Moderate Leak' | 'Severe Leak' | 'Critical Exposure';
   color: string;
   contributions: ScoreContribution[];
+  weightsExplanation?: Record<string, number>;
 }
 
 export interface AudioScanInput {
@@ -89,6 +104,8 @@ export interface ScanResult {
   leakScore: LeakScoreResult;
   metadata: MetadataReport;
   visualBoxes: VisualFindingBox[];
+  analysisTimeMs?: number;
+  realtimeFactor?: number;
   spectrogramData?: {
     frequencies: Float32Array;
     times: Float32Array;
@@ -119,4 +136,8 @@ export interface FixReport {
   fixedBlobUrl: string;
   signature?: string;
   publicKeyJwk?: JsonWebKey;
+  merkleRoot?: string;
+  residualRiskNotice?: string;
+  logSpectralDistanceDb?: number;
+  segmentalSnrDb?: number;
 }

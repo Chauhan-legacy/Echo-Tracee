@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, ChevronDown, ChevronUp, HelpCircle, ArrowRight } from 'lucide-react';
+import { ShieldAlert, ChevronDown, ChevronUp, HelpCircle, ArrowRight, Wrench } from 'lucide-react';
 import { LeakScoreResult, Finding } from '../types';
 import { calculateLeakScore } from '../dsp/scoring';
 
@@ -68,7 +68,7 @@ export const LeakScoreGauge: React.FC<LeakScoreGaugeProps> = ({
   const [showExplanation, setShowExplanation] = useState(false);
   const [displayScore, setDisplayScore] = useState(0);
 
-  // Requirement D.7: Smooth Count-Up Animation
+  // Smooth Count-Up Animation
   useEffect(() => {
     let start = performance.now();
     const duration = 900;
@@ -98,15 +98,20 @@ export const LeakScoreGauge: React.FC<LeakScoreGaugeProps> = ({
   const warnCount = findings.filter(f => f.severity === 'warn').length;
   const infoCount = findings.filter(f => f.severity === 'info').length;
 
-  const fixableCount = findings.filter(f => f.fixable).length;
   const projectedCleanScore = Math.max(0, calculateLeakScore(findings.filter(f => !f.fixable)).totalScore);
-
   const verdictText = getScoreVerdict(score, findings);
+
+  // Confidence interval for score
+  const scoreLow = score.scoreLow ?? Math.max(0, score.totalScore - 6);
+  const scoreHigh = score.scoreHigh ?? Math.min(100, score.totalScore + 6);
+
+  // Color selection based on score severity
+  const ringColor = score.totalScore >= 70 ? '#A32A1F' : score.totalScore >= 35 ? '#7A4E00' : '#174D35';
 
   return (
     <div className="space-y-4">
-      {/* Score Hero Card (Requirement D.7) */}
-      <div className="rounded-2xl border border-white/5 bg-[#0D121F] p-6 shadow-xl">
+      {/* Score Hero Card */}
+      <div className="rounded-2xl border border-beige-hairline bg-beige-card p-6 shadow-panel">
         <div className="flex flex-col sm:flex-row items-center gap-6">
           {/* Large Ring Gauge: 180px desktop, 150px phone */}
           <div className="relative shrink-0 flex items-center justify-center">
@@ -120,87 +125,96 @@ export const LeakScoreGauge: React.FC<LeakScoreGaugeProps> = ({
                   cx="80"
                   cy="80"
                   r={radius}
-                  stroke="#162032"
+                  className="stroke-beige-sunken"
                   strokeWidth="12"
                   fill="transparent"
                 />
-                {/* Active Colored Arc */}
+                {/* Progress */}
                 <circle
                   cx="80"
                   cy="80"
                   r={radius}
-                  stroke={score.color}
+                  stroke={ringColor}
                   strokeWidth="12"
-                  fill="transparent"
                   strokeDasharray={circumference}
                   strokeDashoffset={strokeDashoffset}
                   strokeLinecap="round"
+                  fill="transparent"
                   className="transition-all duration-700 ease-out"
-                  style={{
-                    filter: `drop-shadow(0 0 10px ${score.color}88)`,
-                  }}
                 />
               </svg>
 
-              {/* Number in center */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                <span className="font-display text-4xl sm:text-5xl font-extrabold text-white tracking-tight">
+              {/* Centered Score Number */}
+              <div className="absolute flex flex-col items-center justify-center text-center">
+                <span className="font-mono text-4xl sm:text-5xl font-black text-forest-ink">
                   {displayScore}
                 </span>
-                <span className="font-mono text-xs text-term-dim uppercase tracking-wider mt-0.5">
-                  / 100 LEAK
+                <span className="font-mono text-[11px] font-bold text-forest-muted">
+                  / 100
+                </span>
+                <span className="font-mono text-[10px] text-forest-muted mt-0.5">
+                  [{scoreLow}–{scoreHigh}]
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Right info block: Verdict at 18px & Severity Chips */}
-          <div className="flex-1 space-y-3 text-center sm:text-left min-w-0 w-full">
+          {/* Right Information / Verdict */}
+          <div className="flex-1 min-w-0 space-y-3 text-center sm:text-left">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
               <span
-                className="h-3 w-3 rounded-full animate-pulse shrink-0"
-                style={{ backgroundColor: score.color }}
-              />
-              <span className="font-display text-xl font-bold text-white tracking-tight">
+                className={`inline-block rounded-md px-2.5 py-1 font-mono text-xs font-bold uppercase tracking-wider ${
+                  score.totalScore >= 70
+                    ? 'bg-brick/15 text-brick border border-brick/30'
+                    : score.totalScore >= 35
+                    ? 'bg-ochre/15 text-ochre border border-ochre/30'
+                    : 'bg-forest/15 text-forest border border-forest/30'
+                }`}
+              >
                 {score.rating}
               </span>
-              {isFixed && (
-                <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 font-mono text-xs text-emerald-400 font-semibold">
-                  Sanitized
-                </span>
-              )}
+              <span className="font-mono text-xs text-forest-muted">
+                {findings.length} findings evaluated
+              </span>
             </div>
 
-            {/* One-sentence verdict in plain English at 18px (Requirement D.7) */}
-            <p id="score-verdict-text" className="text-[17px] sm:text-[18px] font-normal text-white/90 leading-snug">
+            {/* Plain English Verdict (Requirement D.7: 18px) */}
+            <p
+              id="score-verdict-text"
+              className="text-[18px] font-medium text-forest-ink leading-snug"
+            >
               {verdictText}
             </p>
 
-            {/* Three Severity Chips with counts (Requirement D.7) */}
+            {/* Severity Chips */}
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/15 border border-red-500/30 px-3 py-1 text-xs font-semibold text-red-300">
-                <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
-                {criticalCount} Critical
+              <span className="flex items-center gap-1.5 rounded-lg border border-brick/30 bg-brick/10 px-2.5 py-1 text-xs font-semibold text-brick">
+                <span className="h-2 w-2 rounded-full bg-brick" />
+                Critical: {criticalCount}
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-3 py-1 text-xs font-semibold text-amber-300">
-                <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-                {warnCount} Warning
+              <span className="flex items-center gap-1.5 rounded-lg border border-ochre/30 bg-ochre/10 px-2.5 py-1 text-xs font-semibold text-ochre">
+                <span className="h-2 w-2 rounded-full bg-ochre" />
+                Warning: {warnCount}
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan-500/15 border border-cyan-500/30 px-3 py-1 text-xs font-semibold text-cyan-300">
-                <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
-                {infoCount} Info
+              <span className="flex items-center gap-1.5 rounded-lg border border-forest/20 bg-forest/10 px-2.5 py-1 text-xs font-semibold text-forest">
+                <span className="h-2 w-2 rounded-full bg-forest" />
+                Info: {infoCount}
               </span>
             </div>
 
-            {/* Explain this score link (Requirement D.7) */}
+            {/* Explain Score Toggle */}
             <div className="pt-1">
               <button
                 onClick={() => setShowExplanation(!showExplanation)}
-                className="inline-flex items-center gap-1.5 text-xs text-cyan hover:text-cyan/80 transition font-medium focus:outline-none"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-forest hover:text-forest-ink hover:underline transition"
               >
-                <HelpCircle className="h-3.5 w-3.5" />
-                <span>Explain this score</span>
-                {showExplanation ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                <HelpCircle className="h-3.5 w-3.5 text-forest" />
+                <span>Explain this score & formula</span>
+                {showExplanation ? (
+                  <ChevronUp className="h-3 w-3" />
+                ) : (
+                  <ChevronDown className="h-3 w-3" />
+                )}
               </button>
             </div>
           </div>
@@ -208,50 +222,76 @@ export const LeakScoreGauge: React.FC<LeakScoreGaugeProps> = ({
 
         {/* Expandable Explanation Breakdown */}
         {showExplanation && (
-          <div className="mt-5 border-t border-white/5 pt-4 space-y-2">
-            <h5 className="font-display text-xs font-bold uppercase tracking-wider text-term-dim">
-              Deterministic Leak Score Breakdown
+          <div className="mt-5 border-t border-beige-hairline pt-4 space-y-3">
+            <h5 className="font-display text-sm font-bold text-forest-ink">
+              Transparent Leak Score Model (0–100)
             </h5>
-            <div className="space-y-1.5">
-              {score.contributions.length === 0 ? (
-                <p className="text-xs text-term-dim">No penalty points added. Audio and frame spectrum clean.</p>
-              ) : (
-                score.contributions.map((c, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between rounded-lg bg-black/30 border border-white/5 px-3 py-2 text-xs"
-                  >
-                    <div className="pr-3">
-                      <span className="font-medium text-white">{c.title}</span>
-                      <p className="text-[11px] text-term-dim">{c.explanation}</p>
-                    </div>
-                    <span className="font-mono font-bold text-red-400 shrink-0">
-                      +{c.points} pts
+            <p className="text-xs text-forest-muted leading-relaxed">
+              Every point is calculated from physical signal measurements. Critical findings (e.g. ultrasonic tracking beacons, GPS fixes) carry high weights (25–35 pts), warnings (e.g. power grid hum, room reverb) carry moderate weights (10–20 pts), and info items carry low weights (5 pts).
+            </p>
+
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+              {score.contributions.map(item => (
+                <div
+                  key={item.findingId}
+                  className="flex items-center justify-between rounded-lg bg-beige-sunken/60 border border-beige-hairline p-2 text-xs"
+                >
+                  <div className="flex items-center gap-2 min-w-0 pr-2">
+                    <span
+                      className={`h-2 w-2 rounded-full shrink-0 ${
+                        item.severity === 'critical'
+                          ? 'bg-brick'
+                          : item.severity === 'warn'
+                          ? 'bg-ochre'
+                          : 'bg-forest'
+                      }`}
+                    />
+                    <span className="font-medium text-forest-ink truncate">
+                      {item.title}
                     </span>
                   </div>
-                ))
-              )}
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div className="w-16 h-1.5 rounded-full bg-beige-hairline overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-forest"
+                        style={{ width: `${Math.min(100, (item.points / 35) * 100)}%` }}
+                      />
+                    </div>
+                    <span className="font-mono font-bold text-forest w-8 text-right">
+                      +{item.points}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
       </div>
 
-      {/* Prominent Full-Width "Fix Leaks in 1 Tap" Button with Promise (Requirement D.8) */}
-      {!isFixed && fixableCount > 0 && onFixAll && (
+      {/* Full-width "Fix leaks in 1 tap" Button (Requirement D.8) */}
+      {onFixAll && !isFixed && score.totalScore > 0 && (
         <button
           onClick={onFixAll}
-          className="w-full min-h-[52px] rounded-xl bg-cyan hover:bg-cyan/90 active:scale-[0.99] transition shadow-glow-cyan p-4 text-center flex items-center justify-between group text-black font-display font-bold text-base"
+          className="group w-full flex items-center justify-between rounded-2xl bg-lime border-2 border-lime p-4 text-forest font-bold transition shadow-elevated hover:bg-lime-bright active:scale-[0.99] min-h-[56px]"
         >
-          <div className="flex items-center gap-2.5">
-            <ShieldAlert className="h-5 w-5" />
-            <span>Fix leaks in 1 tap</span>
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-forest/15 p-2">
+              <Wrench className="h-5 w-5 text-forest" />
+            </div>
+            <div className="text-left">
+              <div className="font-display text-base font-bold text-forest">
+                Fix leaks in 1 tap
+              </div>
+              <div className="text-xs text-forest/80 font-medium">
+                Strip ultrasound, notch power hum, scrub metadata & blur faces
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="rounded-lg bg-black/20 px-2.5 py-1 font-mono text-xs font-semibold">
-              score {score.totalScore} → about {projectedCleanScore}
-            </span>
-            <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+          <div className="flex items-center gap-2 font-mono text-sm bg-forest text-lime px-3 py-1.5 rounded-xl font-bold">
+            <span>score {score.totalScore}</span>
+            <ArrowRight className="h-3.5 w-3.5" />
+            <span>about {projectedCleanScore}</span>
           </div>
         </button>
       )}

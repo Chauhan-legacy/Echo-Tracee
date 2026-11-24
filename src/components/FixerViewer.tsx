@@ -21,6 +21,8 @@ import { APP_COPY } from '../constants/copy';
 interface FixerViewerProps {
   scanResult: ScanResult;
   videoFrames: HTMLCanvasElement[];
+  audioChannelData?: Float32Array | null;
+  sampleRate?: number;
   onFixedComplete: (report: FixReport, cleanFrames: HTMLCanvasElement[]) => void;
   existingReport?: FixReport | null;
 }

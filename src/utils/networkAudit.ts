@@ -75,3 +75,7 @@ export function initNetworkAudit(): void {
 export function getNetworkAuditLogs(): NetworkLogEntry[] {
   return [...networkLogs];
 }
+
+export function getNetworkAuditCount(): number {
+  return networkLogs.length;
+}

@@ -13,6 +13,10 @@ interface FindingCardProps {
   finding: Finding;
   onFix?: (findingId: string) => void;
   isFixed?: boolean;
+  isHovered?: boolean;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+  onSelect?: () => void;
 }
 
 const SEVERITY_CONFIG: Record<
@@ -20,26 +24,27 @@ const SEVERITY_CONFIG: Record<
   { pillBg: string; text: string; icon: React.ComponentType<{ className?: string }>; tag: string }
 > = {
   critical: {
-    pillBg: 'bg-red-500/15 border-red-500/30 text-red-300',
-    text: 'text-red-400',
+    pillBg: 'bg-brick/15 border-brick/30 text-brick',
+    text: 'text-brick',
     icon: AlertOctagon,
     tag: 'CRITICAL',
   },
   warn: {
-    pillBg: 'bg-amber-500/15 border-amber-500/30 text-amber-300',
-    text: 'text-amber-400',
+    pillBg: 'bg-ochre/15 border-ochre/30 text-ochre',
+    text: 'text-ochre',
     icon: AlertTriangle,
     tag: 'WARNING',
   },
   info: {
-    pillBg: 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300',
-    text: 'text-cyan-400',
+    pillBg: 'bg-forest/15 border-forest/30 text-forest',
+    text: 'text-forest',
     icon: Info,
     tag: 'INFO',
   },
 };
 
-function getMethodTag(category: string): string {
+function getMethodTag(category: string, method?: string): string {
+  if (method) return method;
   switch (category) {
     case 'visual':
       return 'Quick Scan (image analysis)';
@@ -52,21 +57,34 @@ function getMethodTag(category: string): string {
   }
 }
 
-export const FindingCard: React.FC<FindingCardProps> = ({ finding, onFix, isFixed = false }) => {
+export const FindingCard: React.FC<FindingCardProps> = ({
+  finding,
+  onFix,
+  isFixed = false,
+  isHovered = false,
+  onMouseEnter,
+  onMouseLeave,
+  onSelect,
+}) => {
   const [showHowWeKnow, setShowHowWeKnow] = useState(false);
   const cfg = SEVERITY_CONFIG[finding.severity];
   const Icon = cfg.icon;
-  const methodTag = getMethodTag(finding.category);
+  const methodTag = getMethodTag(finding.category, finding.method);
 
   return (
     <div
-      className={`rounded-2xl border border-white/5 bg-[#0D121F] p-5 shadow-lg transition hover:border-white/10 ${
-        isFixed ? 'opacity-60' : ''
-      }`}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      onClick={onSelect}
+      className={`rounded-2xl border bg-beige-card p-5 shadow-panel transition cursor-pointer ${
+        isHovered
+          ? 'border-forest ring-2 ring-forest/20 shadow-elevated scale-[1.01]'
+          : 'border-beige-hairline hover:border-forest/40'
+      } ${isFixed ? 'opacity-65' : ''}`}
     >
       <div className="flex items-start justify-between gap-4">
         {/* Left Icon */}
-        <div className={`mt-0.5 rounded-xl p-2.5 bg-black/40 border border-white/5 ${cfg.text} shrink-0`}>
+        <div className={`mt-0.5 rounded-xl p-2.5 bg-beige-sunken/80 border border-beige-hairline ${cfg.text} shrink-0`}>
           <Icon className="h-5 w-5" />
         </div>
 
@@ -74,13 +92,13 @@ export const FindingCard: React.FC<FindingCardProps> = ({ finding, onFix, isFixe
         <div className="flex-1 min-w-0 space-y-2">
           {/* Header Row: Plain headline in sentence case & Badges */}
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h4 className="font-display text-base font-bold text-white tracking-wide">
+            <h4 className="font-display text-base font-bold text-forest-ink tracking-tight">
               {finding.title}
             </h4>
 
             <div className="flex items-center gap-2">
               {/* Method Tag */}
-              <span className="rounded-md bg-white/5 border border-white/10 px-2 py-0.5 text-xs text-term-dim">
+              <span className="rounded-md bg-beige-sunken border border-beige-hairline px-2 py-0.5 text-xs text-forest-muted font-medium">
                 {methodTag}
               </span>
 
@@ -90,76 +108,72 @@ export const FindingCard: React.FC<FindingCardProps> = ({ finding, onFix, isFixe
               </span>
 
               {isFixed && (
-                <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-xs text-emerald-400 font-semibold">
+                <span className="inline-flex items-center gap-1 rounded-md bg-forest/15 border border-forest/30 px-2 py-0.5 text-xs text-forest font-semibold">
                   <CheckCircle className="h-3 w-3" /> Fixed
                 </span>
               )}
             </div>
           </div>
 
-          {/* One-Sentence Plain English Description (Requirement D.9, C.5: min 15px) */}
-          <p className="text-[15px] text-white/80 leading-relaxed font-normal">
+          {/* One-Sentence Plain English Description (Body >= 16px) */}
+          <p className="text-[16px] text-forest-ink/90 leading-relaxed font-normal">
             {finding.plainText}
           </p>
 
           {/* Bottom Metainfo: Confidence Bar & Time Range */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
             <div className="flex items-center gap-2.5">
-              <span className="text-xs text-term-dim">Confidence</span>
-              <div className="h-1.5 w-20 bg-white/10 rounded-full overflow-hidden">
+              <span className="text-xs text-forest-muted font-medium">Confidence</span>
+              <div className="h-2 w-20 bg-beige-sunken rounded-full overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-cyan transition-all duration-500"
+                  className="h-full rounded-full bg-forest transition-all duration-500"
                   style={{ width: `${Math.round(finding.confidence * 100)}%` }}
                 />
               </div>
-              <span className="font-mono text-xs text-white">
+              <span className="font-mono text-xs text-forest-ink font-bold">
                 {Math.round(finding.confidence * 100)}%
               </span>
             </div>
 
             {finding.timeRange && (
-              <span className="font-mono text-xs text-term-dim">
-                Active: {finding.timeRange[0]}s – {finding.timeRange[1]}s
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Expandable "How We Know" Row with Numbers (Requirement D.9) */}
-      <div className="mt-3.5 border-t border-white/5 pt-2.5">
-        <button
-          onClick={() => setShowHowWeKnow(!showHowWeKnow)}
-          className="flex min-h-[44px] w-full items-center justify-between text-xs text-cyan hover:text-cyan/80 transition font-medium focus:outline-none"
-        >
-          <span>{showHowWeKnow ? 'Hide measurement evidence' : 'How we know (forensic numbers)'}</span>
-          {showHowWeKnow ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-        </button>
-
-        {showHowWeKnow && (
-          <div className="mt-2.5 rounded-xl bg-black/40 border border-white/5 p-3.5 space-y-2">
-            <table className="w-full text-left font-mono text-xs">
-              <tbody>
-                {Object.entries(finding.details).map(([key, val]) => (
-                  <tr key={key} className="border-b border-white/5 last:border-0">
-                    <td className="py-1.5 pr-4 text-term-dim capitalize">
-                      {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
-                    </td>
-                    <td className="py-1.5 font-medium text-white break-all">
-                      {val === true ? 'Yes' : val === false ? 'No' : String(val ?? 'None')}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {finding.fixDescription && (
-              <div className="mt-2 rounded-lg border border-cyan/30 bg-cyan/10 p-2.5 text-xs text-cyan">
-                <strong>Fix Action:</strong> {finding.fixDescription}
+              <div className="font-mono text-xs text-forest-muted bg-beige-sunken/60 px-2 py-0.5 rounded border border-beige-hairline">
+                ⏱ {finding.timeRange[0].toFixed(1)}s – {finding.timeRange[1].toFixed(1)}s
               </div>
             )}
           </div>
-        )}
+
+          {/* Expandable "How We Know" details toggle */}
+          <div className="pt-2 border-t border-beige-hairline/80">
+            <button
+              onClick={e => {
+                e.stopPropagation();
+                setShowHowWeKnow(!showHowWeKnow);
+              }}
+              className="flex items-center gap-1.5 text-xs font-semibold text-forest hover:text-forest-ink transition"
+            >
+              <span>How we know (parameters & math)</span>
+              {showHowWeKnow ? (
+                <ChevronUp className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" />
+              )}
+            </button>
+
+            {showHowWeKnow && (
+              <div className="mt-2 rounded-xl bg-beige-sunken/70 border border-beige-hairline p-3 font-mono text-xs space-y-1.5">
+                <div className="text-[11px] font-bold text-forest-muted uppercase tracking-wider mb-1">
+                  Extracted Signal Parameters
+                </div>
+                {Object.entries(finding.details).map(([key, val]) => (
+                  <div key={key} className="flex justify-between py-0.5 border-b border-beige-hairline/50 last:border-0">
+                    <span className="text-forest-muted">{key}:</span>
+                    <span className="text-forest-ink font-semibold">{String(val)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
