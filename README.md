@@ -359,5 +359,3 @@ ECHO//TRACE is open-source software licensed under the **Apache License, Version
    See the License for the specific language governing permissions and
    limitations under the License.
 ```
-
-Independent, open-source software. Hosted statically with relative base paths (`./`) requiring zero backend servers, zero databases, and zero external network calls.
