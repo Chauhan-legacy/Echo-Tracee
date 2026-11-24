@@ -1,120 +1,127 @@
 import React from 'react';
-import { Shield, ShieldCheck, Video, Command, Search, Sparkles, HardDrive, Mic, Sliders, Layers } from 'lucide-react';
+import { Upload, Download, Layers, Menu, CheckCircle2, Loader2, Circle } from 'lucide-react';
 import { WaveformLogo } from './WaveformLogo';
 import { ScanResult } from '../types';
 
 interface DesktopTopBarProps {
   scanResult: ScanResult | null;
   isScanning: boolean;
-  onOpenNetworkAudit: () => void;
-  onOpenModelCard: () => void;
-  isRecordingMode: boolean;
-  onToggleRecordingMode: () => void;
-  onOpenCommandPalette: () => void;
-  viewMode?: 'plain' | 'technical';
-  onToggleViewMode?: () => void;
-  onOpenLiveRoomScan?: () => void;
+  onOpenUpload?: () => void;
+  onOpenExport?: () => void;
   onOpenAdvancedDrawer?: () => void;
+  onOpenMenu?: () => void;
 }
 
 export const DesktopTopBar: React.FC<DesktopTopBarProps> = ({
   scanResult,
   isScanning,
-  onOpenNetworkAudit,
-  onOpenModelCard,
-  isRecordingMode,
-  onToggleRecordingMode,
-  onOpenCommandPalette,
-  viewMode = 'plain',
-  onToggleViewMode,
-  onOpenLiveRoomScan,
+  onOpenUpload,
+  onOpenExport,
   onOpenAdvancedDrawer,
+  onOpenMenu,
 }) => {
-  const duration = scanResult ? `${scanResult.duration.toFixed(1)}s` : '15.0s';
-  const shaPrefix = scanResult ? scanResult.sha256.slice(0, 8) : 'e3b0c442';
-  const fileName = scanResult ? scanResult.sourceName : 'INCIDENT-001.mp4';
-  const analysisTime = scanResult?.analysisTimeMs ? `${scanResult.analysisTimeMs}ms` : '182ms';
-  const rtf = scanResult?.realtimeFactor ? `${scanResult.realtimeFactor.toFixed(2)}x` : '0.012x';
+  // Case name
+  const caseName = scanResult
+    ? scanResult.isDemo
+      ? 'INCIDENT-001 (Hostel Room Reel)'
+      : scanResult.sourceName
+    : 'No Case Loaded';
+
+  // Status Chip
+  let statusChip: { text: string; bg: string; textCol: string; icon: React.ReactNode };
+  if (isScanning) {
+    statusChip = {
+      text: 'Analysing',
+      bg: 'bg-forest/20 border-forest/40',
+      textCol: 'text-forest',
+      icon: <Loader2 className="h-3 w-3 animate-spin text-forest" />,
+    };
+  } else if (scanResult) {
+    statusChip = {
+      text: 'Done',
+      bg: 'bg-lime/20 border-lime/40',
+      textCol: 'text-forest-ink',
+      icon: <CheckCircle2 className="h-3 w-3 text-forest" />,
+    };
+  } else {
+    statusChip = {
+      text: 'Idle',
+      bg: 'bg-beige-sunken/60 border-beige-hairline',
+      textCol: 'text-forest-muted',
+      icon: <Circle className="h-2.5 w-2.5 fill-forest-muted/40 text-forest-muted" />,
+    };
+  }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-beige-hairline bg-beige-card/95 backdrop-blur-md px-3 sm:px-6 py-1.5 sm:py-2">
-      <div className="mx-auto flex max-w-[1560px] items-center justify-between gap-2 sm:gap-4">
-        {/* Left: Logo & Case Metadata */}
-        <div className="flex items-center gap-3 sm:gap-4">
+    <header className="sticky top-0 z-30 h-12 md:h-14 border-b border-beige-hairline bg-beige-card/95 backdrop-blur-md px-3 sm:px-6 select-none shrink-0">
+      <div className="mx-auto flex h-full max-w-[1560px] items-center justify-between gap-3">
+        {/* Left: Logo as a single flex item, never wrapped or clipped */}
+        <div className="flex items-center shrink-0 whitespace-nowrap">
           <WaveformLogo isScanning={isScanning} />
+        </div>
 
-          {/* Slim Case Info pill on desktop */}
-          <div className="hidden xl:flex items-center gap-2 rounded-xl border border-beige-hairline bg-beige-sunken/60 px-3 py-1 font-mono text-xs text-forest-ink">
-            <span className="font-bold text-forest">CASE:</span>
-            <span className="font-semibold">{scanResult?.isDemo ? 'INCIDENT-001' : 'INSPECT-01'}</span>
-            {scanResult?.isDemo && (
-              <span className="rounded bg-ochre/20 text-ochre px-1.5 py-0.5 text-[10px] font-bold">
-                DEMO DATA
-              </span>
-            )}
-            <span className="text-forest-muted">|</span>
-            <span className="text-forest-muted truncate max-w-[140px]">{fileName}</span>
-            <span className="text-forest-muted">|</span>
-            <span className="text-forest-muted">SHA:</span>
-            <span className="font-bold text-forest">{shaPrefix}...</span>
-            <span className="text-forest-muted">|</span>
-            <span className="text-forest-muted">{duration}</span>
-            <span className="text-forest-muted">|</span>
-            <span className="text-forest-muted">TIME: {analysisTime}</span>
-            <span className="text-forest-muted">|</span>
-            <span className="rounded bg-forest/20 px-1 text-[11px] font-bold text-forest">RTF: {rtf}</span>
+        {/* Middle: Case name with ellipsis and status chip (Hidden on very small screens < 640px) */}
+        <div className="hidden sm:flex items-center gap-2 min-w-0 max-w-[420px] px-2">
+          <span
+            className="truncate font-mono text-xs font-semibold text-forest-ink"
+            title={caseName}
+          >
+            {caseName}
+          </span>
+          {scanResult?.isDemo && (
+            <span className="shrink-0 rounded bg-ochre/15 border border-ochre/30 px-1.5 py-0.2 font-mono text-[9px] font-bold text-ochre uppercase">
+              DEMO DATA
+            </span>
+          )}
+          <div
+            className={`flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-[11px] font-bold ${statusChip.bg} ${statusChip.textCol}`}
+          >
+            {statusChip.icon}
+            <span>{statusChip.text}</span>
           </div>
         </div>
 
-        {/* Right Controls: View Mode, Advanced Drawer, Prove it, Search */}
-        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-          {/* Plain / Technical Switch (F4) */}
-          {onToggleViewMode && (
-            <button
-              onClick={onToggleViewMode}
-              className="hidden md:flex items-center gap-1 rounded-xl border border-beige-hairline bg-cream px-2.5 py-1 text-xs font-bold text-forest hover:bg-beige-sunken transition shadow-sm"
-              title="Toggle between Plain Language and Technical Forensic metrics"
-            >
-              <Sliders className="h-3.5 w-3.5 text-forest" />
-              <span className="uppercase text-[11px] font-mono">
-                {viewMode === 'plain' ? 'Plain' : 'Tech'}
-              </span>
-            </button>
-          )}
-
-          {/* Advanced Drawer Trigger */}
-          {onOpenAdvancedDrawer && (
-            <button
-              onClick={onOpenAdvancedDrawer}
-              className="flex min-h-[36px] items-center gap-1 rounded-xl border border-beige-hairline bg-cream px-2 sm:px-3 py-1 text-xs font-bold text-forest hover:bg-beige-sunken transition shadow-sm"
-              title="Open Advanced Forensic Drawer (Deep timeline, graphs, models)"
-            >
-              <Layers className="h-3.5 w-3.5 text-forest" />
-              <span className="hidden sm:inline">Advanced</span>
-            </button>
-          )}
-
-          {/* Command Palette Trigger */}
+        {/* Right Desktop: Exactly 3 visible buttons (Upload, Export, Advanced) */}
+        <div className="hidden md:flex items-center gap-2 shrink-0">
+          {/* 1. Upload */}
           <button
-            onClick={onOpenCommandPalette}
-            className="hidden sm:flex min-h-[36px] items-center gap-1.5 rounded-xl border border-beige-hairline bg-cream px-2.5 sm:px-3 py-1 text-xs font-mono text-forest-ink hover:bg-beige-sunken transition shadow-sm"
-            title="Open command palette (Ctrl/Cmd+K)"
+            onClick={onOpenUpload}
+            className="flex h-9 items-center gap-1.5 rounded-xl border border-beige-hairline bg-cream px-3 text-xs font-bold text-forest hover:bg-beige-sunken transition shadow-sm"
+            title="Upload audio or video file"
           >
-            <Search className="h-3.5 w-3.5 text-forest-muted" />
-            <kbd className="rounded border border-beige-hairline bg-beige-sunken px-1.5 py-0.5 text-[10px] font-bold text-forest">
-              ⌘K
-            </kbd>
+            <Upload className="h-3.5 w-3.5 text-forest" />
+            <span>Upload</span>
           </button>
 
-          {/* Prove Zero Leaks Button */}
+          {/* 2. Export */}
           <button
-            onClick={onOpenNetworkAudit}
-            className="flex min-h-[36px] items-center gap-1 rounded-xl bg-forest px-2.5 sm:px-3 py-1 text-xs font-bold text-lime hover:bg-forest-deep transition shadow-sm"
-            title="Inspect runtime network requests (proves zero user data transmitted)"
+            onClick={onOpenExport}
+            className="flex h-9 items-center gap-1.5 rounded-xl border border-beige-hairline bg-cream px-3 text-xs font-bold text-forest hover:bg-beige-sunken transition shadow-sm"
+            title="Export sanitized file & cryptographic receipt"
           >
-            <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-            <span className="hidden sm:inline">Prove Zero Leaks</span>
-            <span className="sm:hidden text-[11px]">Audit</span>
+            <Download className="h-3.5 w-3.5 text-forest" />
+            <span>Export</span>
+          </button>
+
+          {/* 3. Advanced Drawer Trigger */}
+          <button
+            onClick={onOpenAdvancedDrawer}
+            className="flex h-9 items-center gap-1.5 rounded-xl bg-forest px-3.5 text-xs font-bold text-lime hover:bg-forest-deep transition shadow-sm"
+            title="Open Advanced Drawer (Deep timeline, ML model cards, self-audit, network proofs)"
+          >
+            <Layers className="h-3.5 w-3.5 text-lime" />
+            <span>Advanced</span>
+          </button>
+        </div>
+
+        {/* Right Mobile (< 768px): Single Menu Button */}
+        <div className="flex md:hidden items-center shrink-0">
+          <button
+            onClick={onOpenAdvancedDrawer || onOpenMenu}
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-beige-hairline bg-cream text-forest hover:bg-beige-sunken transition shadow-sm"
+            aria-label="Open navigation menu and advanced drawer"
+          >
+            <Menu className="h-5 w-5" />
           </button>
         </div>
       </div>

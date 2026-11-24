@@ -50,7 +50,11 @@ export async function exportSanitizedVideo(
     mimeType = 'video/webm';
   }
 
-  const recorder = new MediaRecorder(combinedStream, { mimeType });
+  const recorder = new MediaRecorder(combinedStream, {
+    mimeType,
+    videoBitsPerSecond: 6000000, // 6 Mbps high-fidelity bitrate
+    audioBitsPerSecond: 192000,
+  });
   const chunks: Blob[] = [];
 
   recorder.ondataavailable = e => {
@@ -71,18 +75,22 @@ export async function exportSanitizedVideo(
   recorder.start();
   sourceNode.start(0);
 
-  // Render frames sequentially (fast in-browser export)
-  const totalFrames = Math.min(15, Math.max(1, frames.length));
+  // Render every available frame sequentially with high quality smoothing
+  const totalFrames = frames.length;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
 
   for (let f = 0; f < totalFrames; f++) {
     const frameIdx = f % frames.length;
     ctx.drawImage(frames[frameIdx], 0, 0, width, height);
     // Draw subtle forensic clean badge in corner
+    ctx.fillStyle = '#174D35';
+    ctx.fillRect(10, 10, 160, 22);
     ctx.fillStyle = '#8BCF55';
-    ctx.font = 'bold 12px monospace';
-    ctx.fillText('SANITIZED // ECHO-TRACE', 14, 24);
+    ctx.font = 'bold 11px monospace';
+    ctx.fillText('SANITIZED // ECHO-TRACE', 14, 25);
 
-    await new Promise(r => setTimeout(r, 25));
+    await new Promise(r => setTimeout(r, Math.max(10, Math.floor(1000 / fps))));
   }
 
   recorder.stop();

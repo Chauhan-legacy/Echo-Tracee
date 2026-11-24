@@ -85,6 +85,7 @@ export const App: React.FC = () => {
   const [drawStart, setDrawStart] = useState<{ x: number; y: number } | null>(null);
   const [currentDrawBox, setCurrentDrawBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const frameCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const topFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Redraw frame canvas with analyst workbench boxes
   const redrawFrameCanvas = useCallback(() => {
@@ -569,18 +570,38 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* Desktop Top Bar */}
+      {/* Hidden file input triggered by Top Bar Upload */}
+      <input
+        ref={topFileInputRef}
+        type="file"
+        accept="audio/*,video/*,.mp4,.mov,.wav,.mp3,.webm"
+        className="hidden"
+        onChange={e => {
+          const file = e.target.files?.[0];
+          if (file) {
+            handleUploadFile(file);
+            e.target.value = '';
+          }
+        }}
+      />
+
+      {/* Desktop Top Bar: Exactly 3 visible buttons, unclipped logo, case info */}
       <DesktopTopBar
         scanResult={scanResult}
         isScanning={isScanning}
-        onOpenNetworkAudit={() => setIsNetworkAuditOpen(true)}
-        onOpenModelCard={() => setIsModelCardOpen(true)}
-        isRecordingMode={isRecordingMode}
-        onToggleRecordingMode={handleToggleRecordingMode}
-        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
-        viewMode={viewMode}
-        onToggleViewMode={toggleViewMode}
-        onOpenLiveRoomScan={() => setIsLiveRoomScanOpen(true)}
+        onOpenUpload={() => {
+          setActiveTab('scan');
+          topFileInputRef.current?.click();
+        }}
+        onOpenExport={() => {
+          if (fixReport) {
+            setActiveTab('fix');
+          } else if (scanResult) {
+            handleExportResultsJson();
+          } else {
+            setIsAdvancedDrawerOpen(true);
+          }
+        }}
         onOpenAdvancedDrawer={() => setIsAdvancedDrawerOpen(true)}
       />
 

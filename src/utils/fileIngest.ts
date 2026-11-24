@@ -173,13 +173,18 @@ export async function ingestUserFile(file: File): Promise<IngestedMedia> {
       });
 
       if (videoEl.videoWidth > 0 && videoEl.videoHeight > 0) {
-        const frameCount = Math.min(8, Math.max(1, Math.floor(Math.min(60, videoEl.duration || 10))));
-        const stepSec = Math.min(60, videoEl.duration || 10) / frameCount;
+        // Native video resolution without artificial 640px clamping
+        const nativeW = videoEl.videoWidth;
+        const nativeH = videoEl.videoHeight;
+        const vidDuration = Math.min(60, videoEl.duration || 10);
+        // Extract smooth sequence of frames (15 fps sampling, up to 60 frames)
+        const frameCount = Math.min(60, Math.max(15, Math.floor(vidDuration * 2)));
+        const stepSec = vidDuration / frameCount;
 
         for (let i = 0; i < frameCount; i++) {
           videoEl.currentTime = i * stepSec;
           await new Promise<void>(r => {
-            const t = setTimeout(r, 200);
+            const t = setTimeout(r, 120);
             videoEl.onseeked = () => {
               clearTimeout(t);
               r();
@@ -187,10 +192,14 @@ export async function ingestUserFile(file: File): Promise<IngestedMedia> {
           });
 
           const canvas = document.createElement('canvas');
-          canvas.width = Math.min(640, videoEl.videoWidth);
-          canvas.height = Math.round((canvas.width / videoEl.videoWidth) * videoEl.videoHeight);
+          canvas.width = nativeW;
+          canvas.height = nativeH;
           const ctx = canvas.getContext('2d');
-          ctx?.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+          if (ctx) {
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(videoEl, 0, 0, nativeW, nativeH);
+          }
           videoFrames.push(canvas);
         }
       } else {
