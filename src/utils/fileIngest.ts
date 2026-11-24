@@ -17,96 +17,127 @@ export interface IngestedMedia {
   statusMessage?: string;
 }
 
+const SUPPORTED_EXTENSIONS = new Set([
+  'mp4', 'mov', 'webm', 'wav', 'mp3', 'm4a', 'aac', 'ogg', 'jpg', 'jpeg', 'png'
+]);
+
 /**
- * Robust, client-side media ingest pipeline.
- * Accepts MP4, MOV, WebM, WAV, MP3, M4A, JPG.
- * Gracefully handles 0-byte, corrupt, audio-only, no-audio, and long files.
+ * Robust, client-side media ingest pipeline with hardened failure injection guards.
+ * Handles: 0-byte file, 300MB file (>100MB), unsupported format, audio-only, video-only, corrupted MP4.
  */
 export async function ingestUserFile(file: File): Promise<IngestedMedia> {
   // 1. Guard: Empty / 0-byte file
   if (!file || file.size === 0) {
-    throw new Error('Selected file is empty (0 bytes). Please provide a valid video or audio recording.');
+    throw new Error('This file is empty (0 bytes). Please choose a valid video or audio recording.');
   }
 
-  // 2. Compute SHA-256 fingerprint
+  // 2. Guard: File size limit (>100 MB)
+  if (file.size > 100 * 1024 * 1024) {
+    throw new Error('This file is larger than 100 MB. To protect your phone’s memory, files are limited to 100 MB.');
+  }
+
+  // 3. Guard: Unsupported format check
+  const ext = file.name.split('.').pop()?.toLowerCase() || '';
+  const isImageMime = file.type.startsWith('image/');
+  const isVideoMime = file.type.startsWith('video/');
+  const isAudioMime = file.type.startsWith('audio/');
+
+  if (!SUPPORTED_EXTENSIONS.has(ext) && !isImageMime && !isVideoMime && !isAudioMime) {
+    throw new Error('This file format is not supported. Please choose an MP4, MOV, WebM, WAV, MP3, or M4A file.');
+  }
+
+  // 4. Compute SHA-256 fingerprint
   const fileBuffer = await file.arrayBuffer();
   const sha256 = await computeSha256(fileBuffer.slice(0, 1024 * 1024 * 4));
 
-  // 3. Parse container metadata (QuickTime atoms / EXIF via exifr & mp4box)
-  const metaResult = await parseMetadataAsync(fileBuffer, file.name);
-
-  const ext = file.name.split('.').pop()?.toLowerCase() || '';
-  const isImage = file.type.startsWith('image/') || ext === 'jpg' || ext === 'jpeg';
-  const isAudioOnly = file.type.startsWith('audio/') || ['wav', 'mp3', 'm4a', 'aac', 'ogg'].includes(ext);
-
-  // 4. Handle Image Files (JPEG/JPG)
-  if (isImage) {
-    const img = new Image();
-    const blobUrl = URL.createObjectURL(file);
-    await new Promise((resolve, reject) => {
-      img.onload = resolve;
-      img.onerror = () => reject(new Error('Could not decode image file format.'));
-      img.src = blobUrl;
-    });
-
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.min(1280, img.width);
-    canvas.height = Math.round((canvas.width / img.width) * img.height);
-    const ctx = canvas.getContext('2d');
-    ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
-    URL.revokeObjectURL(blobUrl);
-
-    return {
-      sourceName: file.name,
-      channelData: new Float32Array(0),
-      sampleRate: 48000,
-      duration: 1.0,
-      hasAudio: false,
-      hasVideo: true,
-      videoFrames: [canvas],
-      metadata: metaResult.report,
-      sha256,
-      isOverLength: false,
-      originalDuration: 1.0,
-      statusMessage: 'Image file ingested. Optical visual checks and EXIF metadata analyzed.',
-    };
+  // 5. Parse container metadata (QuickTime atoms / EXIF via exifr & mp4box)
+  let metaResult: { report: MetadataReport; hasMoov?: boolean };
+  try {
+    metaResult = await parseMetadataAsync(fileBuffer, file.name);
+  } catch {
+    metaResult = { report: { deviceModel: ext.toUpperCase(), rawTags: {} }, hasMoov: false };
   }
 
-  // 5. Decode Audio Streams
+  const isImage = isImageMime || ext === 'jpg' || ext === 'jpeg' || ext === 'png';
+  const isAudioOnly = isAudioMime || ['wav', 'mp3', 'm4a', 'aac', 'ogg'].includes(ext);
+
+  // 6. Handle Image Files (JPEG/PNG)
+  if (isImage) {
+    try {
+      const img = new Image();
+      const blobUrl = URL.createObjectURL(file);
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = () => reject(new Error('Could not decode image file format.'));
+        img.src = blobUrl;
+      });
+
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.min(1280, img.width || 640);
+      canvas.height = Math.round((canvas.width / (img.width || 1)) * (img.height || 480));
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(blobUrl);
+
+      return {
+        sourceName: file.name,
+        channelData: new Float32Array(0),
+        sampleRate: 48000,
+        duration: 1.0,
+        hasAudio: false,
+        hasVideo: true,
+        videoFrames: [canvas],
+        metadata: metaResult.report,
+        sha256,
+        isOverLength: false,
+        originalDuration: 1.0,
+        statusMessage: 'Image file ingested. Optical visual checks and EXIF metadata analyzed.',
+      };
+    } catch {
+      throw new Error('Could not decode image. The file may be damaged or not a valid image.');
+    }
+  }
+
+  // 7. Decode Audio Streams
   let channelData = new Float32Array(0);
   let sampleRate = 48000;
   let duration = 0;
   let hasAudio = false;
 
   try {
-    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    // Copy buffer as decodeAudioData detaches
-    const audioBufferCopy = fileBuffer.slice(0);
-    const decoded = await audioCtx.decodeAudioData(audioBufferCopy);
-
-    sampleRate = decoded.sampleRate;
-    hasAudio = true;
-
-    // Stereo to Mono mixdown if needed
-    if (decoded.numberOfChannels >= 2) {
-      const left = decoded.getChannelData(0);
-      const right = decoded.getChannelData(1);
-      channelData = new Float32Array(left.length);
-      for (let i = 0; i < left.length; i++) {
-        channelData[i] = 0.5 * (left[i] + right[i]);
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (AudioCtx) {
+      const audioCtx = new AudioCtx();
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
       }
-    } else {
-      channelData = decoded.getChannelData(0);
-    }
+      const audioBufferCopy = fileBuffer.slice(0);
+      const decoded = await audioCtx.decodeAudioData(audioBufferCopy);
 
-    duration = channelData.length / sampleRate;
-    await audioCtx.close();
+      sampleRate = decoded.sampleRate;
+      hasAudio = true;
+
+      // Stereo to Mono mixdown if needed
+      if (decoded.numberOfChannels >= 2) {
+        const left = decoded.getChannelData(0);
+        const right = decoded.getChannelData(1);
+        channelData = new Float32Array(left.length);
+        for (let i = 0; i < left.length; i++) {
+          channelData[i] = 0.5 * (left[i] + right[i]);
+        }
+      } else {
+        channelData = decoded.getChannelData(0);
+      }
+
+      duration = channelData.length / sampleRate;
+      await audioCtx.close();
+    }
   } catch (audioErr) {
     // Graceful soft handling: container might be video-only without audio track
     hasAudio = false;
   }
 
-  // 6. Handle 60s length cap
+  // 8. Handle 60s length cap
   const originalDuration = duration;
   let isOverLength = false;
   if (duration > 60.0) {
@@ -116,7 +147,7 @@ export async function ingestUserFile(file: File): Promise<IngestedMedia> {
     duration = 60.0;
   }
 
-  // 7. Extract Video Frames (if video file)
+  // 9. Extract Video Frames (if video file)
   const videoFrames: HTMLCanvasElement[] = [];
   let hasVideo = !isAudioOnly;
 
@@ -128,7 +159,7 @@ export async function ingestUserFile(file: File): Promise<IngestedMedia> {
       const videoBlobUrl = URL.createObjectURL(file);
       videoEl.src = videoBlobUrl;
 
-      await new Promise<void>((resolve, reject) => {
+      await new Promise<void>((resolve) => {
         const timeout = setTimeout(() => resolve(), 3000); // 3s max wait
         videoEl.onloadedmetadata = () => {
           clearTimeout(timeout);
@@ -142,9 +173,8 @@ export async function ingestUserFile(file: File): Promise<IngestedMedia> {
       });
 
       if (videoEl.videoWidth > 0 && videoEl.videoHeight > 0) {
-        // Sample up to 8 frames across the first 60 seconds
         const frameCount = Math.min(8, Math.max(1, Math.floor(Math.min(60, videoEl.duration || 10))));
-        const stepSec = (Math.min(60, videoEl.duration || 10)) / frameCount;
+        const stepSec = Math.min(60, videoEl.duration || 10) / frameCount;
 
         for (let i = 0; i < frameCount; i++) {
           videoEl.currentTime = i * stepSec;
@@ -173,11 +203,16 @@ export async function ingestUserFile(file: File): Promise<IngestedMedia> {
     }
   }
 
+  // 10. Check if file is completely corrupt (neither audio nor video could be parsed)
+  if (!hasAudio && !hasVideo) {
+    throw new Error('This media file appears damaged or incomplete. Could not read container headers.');
+  }
+
   let statusMessage = '';
   if (!hasAudio && hasVideo) {
-    statusMessage = 'Video recording has no audio track. Visual and metadata checks executed.';
+    statusMessage = 'Video-only recording loaded (no audio track). Visual frame and container metadata analyzed.';
   } else if (hasAudio && !hasVideo) {
-    statusMessage = 'Voice note / audio file ingested. Acoustic spectrum and metadata analyzed.';
+    statusMessage = 'Audio-only recording loaded. Acoustic frequency spectrum and metadata analyzed.';
   } else if (isOverLength) {
     statusMessage = `File duration (${originalDuration.toFixed(0)}s) capped to first 60 seconds.`;
   }

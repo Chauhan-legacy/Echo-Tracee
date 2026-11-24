@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from 'react';
-import { Activity } from 'lucide-react';
 
 /**
  * Custom monotone-lightness colormap:
@@ -50,18 +49,21 @@ export const MiniLiveSpectrogram: React.FC = () => {
       const imgData = ctx.createImageData(w, h);
       const data = imgData.data;
 
+      // Pulse cycle for red tracker line appearance
+      const trackerPulse = (Math.sin(offset * 0.06) + 1) * 0.5; // 0 to 1
+
       for (let y = 0; y < h; y++) {
         const normY = y / h; // 0 = top (high freq ~22kHz), 1 = bottom (low freq 0Hz)
         for (let x = 0; x < w; x++) {
           const t = (x + offset * 0.8) * 0.05;
           // Ultrasonic tracker tone at top (normY around 0.12)
-          const trackerEnergy = Math.exp(-Math.pow((normY - 0.12) / 0.02, 2)) * 0.95 * (Math.sin(t * 3.5) > 0 ? 1 : 0.05);
+          const trackerEnergy = Math.exp(-Math.pow((normY - 0.12) / 0.02, 2)) * 0.95 * trackerPulse;
           // Mains hum at bottom (normY around 0.95)
           const humEnergy = Math.exp(-Math.pow((normY - 0.95) / 0.03, 2)) * 0.85;
           // Room speech/acoustic formants in middle (normY around 0.5 to 0.8)
           const speechFormant1 = Math.exp(-Math.pow((normY - 0.65) / 0.08, 2)) * Math.max(0, Math.sin(t * 1.2) * Math.cos(t * 0.7));
           const speechFormant2 = Math.exp(-Math.pow((normY - 0.45) / 0.06, 2)) * Math.max(0, Math.cos(t * 1.5));
-          const noise = (Math.sin(x * 12.9898 + y * 78.233 + offset) * 43758.5453) % 1 * 0.08;
+          const noise = ((Math.sin(x * 12.9898 + y * 78.233 + offset) * 43758.5453) % 1) * 0.06;
 
           const energy = Math.max(0, Math.min(1, trackerEnergy + humEnergy + speechFormant1 * 0.7 + speechFormant2 * 0.5 + noise));
           const [r, g, b] = getV3ColormapRgb(energy);
@@ -76,14 +78,13 @@ export const MiniLiveSpectrogram: React.FC = () => {
 
       ctx.putImageData(imgData, 0, 0);
 
-      // Grid overlay lines
-      ctx.strokeStyle = 'rgba(139, 207, 85, 0.15)';
-      ctx.lineWidth = 1;
+      // Red tracker line (19.4 kHz) appears and pulses
+      const trackerY = h * 0.12;
+      ctx.strokeStyle = `rgba(220, 38, 38, ${Math.max(0.3, trackerPulse)})`;
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(0, h * 0.12);
-      ctx.lineTo(w, h * 0.12);
-      ctx.moveTo(0, h * 0.95);
-      ctx.lineTo(w, h * 0.95);
+      ctx.moveTo(0, trackerY);
+      ctx.lineTo(w, trackerY);
       ctx.stroke();
 
       animId = requestAnimationFrame(render);
@@ -94,38 +95,23 @@ export const MiniLiveSpectrogram: React.FC = () => {
   }, []);
 
   return (
-    <div className="relative rounded-2xl border border-forest/30 bg-forest-deep p-4 shadow-data overflow-hidden">
-      <div className="flex items-center justify-between border-b border-forest/30 pb-2 mb-3">
-        <div className="flex items-center gap-2 text-lime">
-          <Activity className="h-4 w-4 animate-pulse" />
-          <span className="font-mono text-xs font-bold uppercase tracking-wider text-lime">
-            Live Acoustic Sensor Feed
-          </span>
-        </div>
-        <span className="rounded bg-forest/40 border border-lime/30 px-2 py-0.5 font-mono text-[11px] text-lime font-bold">
-          48 kHz STFT
-        </span>
-      </div>
-
-      <div className="relative aspect-[16/9] w-full rounded-lg overflow-hidden border border-forest/40">
+    <div className="relative rounded-2xl border border-forest/30 bg-[#0B281B] p-2.5 sm:p-3 shadow-data overflow-hidden">
+      <div className="relative aspect-[16/7] sm:aspect-[16/8] w-full rounded-xl overflow-hidden border border-forest/40">
         <canvas
           ref={canvasRef}
           width={320}
-          height={180}
+          height={140}
           className="h-full w-full object-cover"
         />
-        <div className="absolute top-2 left-2 rounded bg-forest-deep/90 border border-brick px-1.5 py-0.5 text-[10px] font-mono text-cream font-bold">
-          19.4 kHz Ultrasonic Beacon
+        {/* Tracker Beacon Callout */}
+        <div className="absolute top-1.5 left-2 rounded bg-[#0B281B]/90 border border-brick px-2 py-0.5 text-[10px] font-mono text-cream font-bold flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-brick animate-ping" />
+          <span>19.4 kHz Tracker Beacon</span>
         </div>
-        <div className="absolute bottom-2 left-2 rounded bg-forest-deep/90 border border-ochre px-1.5 py-0.5 text-[10px] font-mono text-cream font-bold">
-          50.02 Hz Power Grid Hum
+        {/* Mains Hum Callout */}
+        <div className="absolute bottom-1.5 left-2 rounded bg-[#0B281B]/90 border border-ochre px-2 py-0.5 text-[10px] font-mono text-cream font-bold">
+          50 Hz Power Hum
         </div>
-      </div>
-      <div className="mt-2.5 flex justify-between text-[11px] font-mono text-cream/70">
-        <span>0 Hz</span>
-        <span>1 kHz</span>
-        <span>10 kHz</span>
-        <span>24 kHz</span>
       </div>
     </div>
   );

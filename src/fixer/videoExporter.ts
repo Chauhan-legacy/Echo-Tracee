@@ -71,19 +71,18 @@ export async function exportSanitizedVideo(
   recorder.start();
   sourceNode.start(0);
 
-  // Render frames sequentially
-  const totalDuration = cleanAudio.length / sampleRate;
-  const totalFrames = Math.max(1, Math.round(totalDuration * fps));
+  // Render frames sequentially (fast in-browser export)
+  const totalFrames = Math.min(15, Math.max(1, frames.length));
 
   for (let f = 0; f < totalFrames; f++) {
-    const frameIdx = Math.min(frames.length - 1, Math.floor((f / totalFrames) * frames.length));
+    const frameIdx = f % frames.length;
     ctx.drawImage(frames[frameIdx], 0, 0, width, height);
     // Draw subtle forensic clean badge in corner
-    ctx.fillStyle = 'rgba(0, 240, 255, 0.7)';
-    ctx.font = 'bold 10px monospace';
-    ctx.fillText('SANITIZED // ECHO-TRACE', 14, 20);
+    ctx.fillStyle = '#8BCF55';
+    ctx.font = 'bold 12px monospace';
+    ctx.fillText('SANITIZED // ECHO-TRACE', 14, 24);
 
-    await new Promise(r => setTimeout(r, Math.floor(1000 / fps)));
+    await new Promise(r => setTimeout(r, 25));
   }
 
   recorder.stop();

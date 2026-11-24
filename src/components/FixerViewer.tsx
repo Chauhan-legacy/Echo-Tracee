@@ -70,7 +70,7 @@ export const FixerViewer: React.FC<FixerViewerProps> = ({
   const handleRunFix = async () => {
     setIsProcessing(true);
     setProgressStep('Synthesizing zero-phase adaptive notch filter bank...');
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise(r => setTimeout(r, 25));
 
     // 1. Audio sanitization based strictly on current file findings & tier
     const tonesToNotch = scanResult.findings
@@ -86,7 +86,7 @@ export const FixerViewer: React.FC<FixerViewerProps> = ({
     const humFreq = detectedHum && detectedHum > 40 && detectedHum < 70 ? detectedHum : undefined;
 
     setProgressStep('Applying Kaiser low-pass FIR (>= 100 dB stopband) & 32 kHz resampling...');
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise(r => setTimeout(r, 25));
 
     const {
       cleanAudio,
@@ -98,13 +98,13 @@ export const FixerViewer: React.FC<FixerViewerProps> = ({
     } = sanitizeAudio(audioDataToUse, sampleRate, tonesToNotch, humFreq);
 
     setProgressStep('Pixelating sensitive visual regions (irreversible 24px mosaic, SSIM < 0.2)...');
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise(r => setTimeout(r, 25));
 
     // 2. Video frames sanitization with irreversible mosaic + noise
     const { cleanFrames, maxSsim } = sanitizeVideoFrames(videoFrames, activeVisualBoxes);
 
     setProgressStep('Scrubbing QuickTime, GPS & EXIF container metadata atoms...');
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise(r => setTimeout(r, 25));
 
     // 3. Encode Video if frames available
     let outputVideoBuffer: ArrayBuffer | undefined = undefined;
@@ -128,7 +128,7 @@ export const FixerViewer: React.FC<FixerViewerProps> = ({
     }
 
     setProgressStep('Running closed-loop verification pipeline on in-memory sanitized media...');
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise(r => setTimeout(r, 25));
 
     // 4. Closed-loop verification
     const closedLoop = runClosedLoopVerification(
@@ -140,7 +140,7 @@ export const FixerViewer: React.FC<FixerViewerProps> = ({
     setClosedLoopResult(closedLoop);
 
     setProgressStep('Building Merkle tree chunk proof & signing with Web Crypto ECDSA P-256...');
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise(r => setTimeout(r, 25));
 
     // 5. Merkle Tree & ECDSA P-256
     const origChunks = chunkAudioPerSecond(audioDataToUse, sampleRate);
@@ -463,7 +463,23 @@ export const FixerViewer: React.FC<FixerViewerProps> = ({
                 </span>
               </div>
 
-              <div className="relative h-44 w-full overflow-hidden rounded-xl border border-hairline bg-deep-forest select-none">
+              <div
+                style={{ touchAction: 'none' }}
+                onPointerDown={e => {
+                  const target = e.currentTarget;
+                  target.setPointerCapture(e.pointerId);
+                  const rect = target.getBoundingClientRect();
+                  const pct = Math.max(0, Math.min(100, Math.round(((e.clientX - rect.left) / rect.width) * 100)));
+                  setSliderPosition(pct);
+                }}
+                onPointerMove={e => {
+                  if (e.buttons !== 1) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const pct = Math.max(0, Math.min(100, Math.round(((e.clientX - rect.left) / rect.width) * 100)));
+                  setSliderPosition(pct);
+                }}
+                className="relative h-44 w-full overflow-hidden rounded-xl border border-hairline bg-deep-forest select-none cursor-ew-resize"
+              >
                 {/* Simulated Before Spectrogram (shows 19.4 kHz beacon line) */}
                 <div className="absolute inset-0 flex flex-col justify-between p-3">
                   <div className="flex justify-between font-mono text-[10px] text-muted">

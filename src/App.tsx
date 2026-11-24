@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo, Suspense, lazy } from 'react';
 import { DesktopTopBar } from './components/DesktopTopBar';
 import { LeftIconRail } from './components/LeftIconRail';
 import { BottomTabBar, ActiveTab } from './components/BottomTabBar';
@@ -8,24 +8,14 @@ import { LeakScoreGauge } from './components/LeakScoreGauge';
 import { FindingCard } from './components/FindingCard';
 import { HowWeKnowPanel } from './components/HowWeKnowPanel';
 import { WorldMapCard } from './components/WorldMapCard';
-import { FixerViewer } from './components/FixerViewer';
-import { ShareCardModal } from './components/ShareCardModal';
-import { AutoTourOverlay } from './components/AutoTourOverlay';
-import { NetworkAuditModal } from './components/NetworkAuditModal';
-import { EvidenceGraph } from './components/EvidenceGraph';
-import { TimelineViewer } from './components/TimelineViewer';
-import { ETBenchPage } from './components/ETBenchPage';
-import { SelfAuditPage } from './components/SelfAuditPage';
-import { CommandPalette } from './components/CommandPalette';
-import { ModelCardModal } from './components/ModelCardModal';
-import { VerifyReceiptPage } from './components/VerifyReceiptPage';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { HearToneCard } from './components/HearToneCard';
-import { LiveRoomScanModal } from './components/LiveRoomScanModal';
 import { AttackersViewCard } from './components/AttackersViewCard';
 import { BeforeYouPostChecklist } from './components/BeforeYouPostChecklist';
 import { BeaconBitStrip } from './components/BeaconBitStrip';
+import { FirstRunHints } from './components/FirstRunHints';
 import { IngestedMedia, ingestUserFile } from './utils/fileIngest';
+import { SITE_URL, APP_CONFIG } from './config';
 
 import { ScanResult, Finding, FixReport, VisualFindingBox } from './types';
 import { generateIncident001 } from './demo/incident001';
@@ -38,6 +28,21 @@ import { analyzeVideoFrames } from './analyzers/frames';
 import { analyzeSpokenSecrets } from './analyzers/speech';
 import { classifySoundScene } from './analyzers/scene';
 import { initNetworkAudit } from './utils/networkAudit';
+
+// Lazy-loaded heavy components for bundle budget (<250 kB gzip initial payload)
+const FixerViewer = lazy(() => import('./components/FixerViewer').then(m => ({ default: m.FixerViewer })));
+const ShareCardModal = lazy(() => import('./components/ShareCardModal').then(m => ({ default: m.ShareCardModal })));
+const AutoTourOverlay = lazy(() => import('./components/AutoTourOverlay').then(m => ({ default: m.AutoTourOverlay })));
+const NetworkAuditModal = lazy(() => import('./components/NetworkAuditModal').then(m => ({ default: m.NetworkAuditModal })));
+const LiveRoomScanModal = lazy(() => import('./components/LiveRoomScanModal').then(m => ({ default: m.LiveRoomScanModal })));
+const ModelCardModal = lazy(() => import('./components/ModelCardModal').then(m => ({ default: m.ModelCardModal })));
+const CommandPalette = lazy(() => import('./components/CommandPalette').then(m => ({ default: m.CommandPalette })));
+const ETBenchPage = lazy(() => import('./components/ETBenchPage').then(m => ({ default: m.ETBenchPage })));
+const SelfAuditPage = lazy(() => import('./components/SelfAuditPage').then(m => ({ default: m.SelfAuditPage })));
+const VerifyReceiptPage = lazy(() => import('./components/VerifyReceiptPage').then(m => ({ default: m.VerifyReceiptPage })));
+const EvidenceGraph = lazy(() => import('./components/EvidenceGraph').then(m => ({ default: m.EvidenceGraph })));
+const TimelineViewer = lazy(() => import('./components/TimelineViewer').then(m => ({ default: m.TimelineViewer })));
+const AdvancedDrawer = lazy(() => import('./components/AdvancedDrawer').then(m => ({ default: m.AdvancedDrawer })));
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('scan');
@@ -55,6 +60,8 @@ export const App: React.FC = () => {
   const [isRecordingMode, setIsRecordingMode] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLiveRoomScanOpen, setIsLiveRoomScanOpen] = useState(false);
+  const [isAdvancedDrawerOpen, setIsAdvancedDrawerOpen] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
   // Plain vs Technical toggle (F4)
   const [viewMode, setViewMode] = useState<'plain' | 'technical'>(() => {
@@ -141,19 +148,44 @@ export const App: React.FC = () => {
     return { x, y };
   };
 
-  // Initialize network interception audit & check URL hash on mount
+  // Initialize network audit, online/offline listener & check URL hash on mount
   useEffect(() => {
     initNetworkAudit();
-    if (window.location.hash.startsWith('#verify=')) {
-      setActiveTab('verify');
-    }
-    const handleHashChange = () => {
-      if (window.location.hash.startsWith('#verify=')) {
+
+    const handleHash = () => {
+      const hash = window.location.hash;
+      if (hash.startsWith('#verify')) {
         setActiveTab('verify');
+      } else if (hash === '#bench') {
+        setActiveTab('bench');
+      } else if (hash === '#audit') {
+        setActiveTab('audit');
+      } else if (hash === '#evidence') {
+        setActiveTab('evidence');
+      } else if (hash === '#timeline') {
+        setActiveTab('timeline');
+      } else if (hash === '#fix') {
+        setActiveTab('fix');
+      } else if (hash === '#share') {
+        setActiveTab('share');
+      } else if (hash === '#scan' || hash === '') {
+        setActiveTab('scan');
       }
     };
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+
+    handleHash();
+    window.addEventListener('hashchange', handleHash);
+
+    const onOnline = () => setIsOffline(false);
+    const onOffline = () => setIsOffline(true);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+
+    return () => {
+      window.removeEventListener('hashchange', handleHash);
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
   }, []);
 
   // Toggle recording mode class on body
@@ -171,6 +203,7 @@ export const App: React.FC = () => {
 
   // Load and analyze INCIDENT-001 (The Hostel Reel)
   const handleLoadIncident001 = useCallback(async () => {
+    if (isScanning) return; // double-tap debounce
     setIsScanning(true);
     setFixReport(null);
     setCleanAudioData(null);
@@ -188,8 +221,8 @@ export const App: React.FC = () => {
     setAudioChannelData(demoData.audioBuffer);
     (window as any).__LAST_AUDIO_DATA__ = demoData.audioBuffer;
 
-    // Simulate forensic sweep animation duration (~2.2s)
-    await new Promise(r => setTimeout(r, 2200));
+    // Fast tactile delay (~250ms) to ensure LCP/latency budget <= 3.0s under 4x CPU throttle
+    await new Promise(r => setTimeout(r, 250));
 
     // 2. Real DSP analyzers run on actual generated samples
     const humRes = analyzeHum(demoData.audioBuffer, demoData.sampleRate);
@@ -263,9 +296,9 @@ export const App: React.FC = () => {
     if ('vibrate' in navigator) {
       try { navigator.vibrate([40, 60, 40]); } catch {}
     }
-  }, []);
+  }, [isScanning]);
 
-  // Core Ingested Media Processor (used by both file upload and live mic scan)
+  // Core Ingested Media Processor
   const processIngestedMedia = useCallback(async (media: IngestedMedia) => {
     setIsScanning(true);
     setFixReport(null);
@@ -356,6 +389,7 @@ export const App: React.FC = () => {
 
   // Robust User File Ingestion
   const handleUploadFile = useCallback(async (file: File) => {
+    if (isScanning) return; // double-tap debounce
     setIsScanning(true);
     setErrorMessage(null);
     try {
@@ -365,7 +399,7 @@ export const App: React.FC = () => {
       setErrorMessage(err.message || 'Could not parse file. Check format and try again.');
       setIsScanning(false);
     }
-  }, [processIngestedMedia]);
+  }, [isScanning, processIngestedMedia]);
 
   // Export results.json
   const handleExportResultsJson = () => {
@@ -433,7 +467,6 @@ export const App: React.FC = () => {
     if (!scanResult) return [];
     const list: { freq: number; label: string; color: string; findingId?: string }[] = [];
 
-    // 1. Ultrasonic tone findings
     const ultraFindings = scanResult.findings.filter(f => f.category === 'ultrasonic' && f.severity === 'critical');
     for (const uf of ultraFindings) {
       const freq = typeof uf.details?.frequencyHz === 'number' ? uf.details.frequencyHz : null;
@@ -447,7 +480,6 @@ export const App: React.FC = () => {
       }
     }
 
-    // 2. Mains hum finding
     const humFinding = scanResult.findings.find(f => f.category === 'hum');
     const humHz = scanResult.audioMetrics.detectedHumHz || (humFinding ? Number(humFinding.details?.baseFrequencyHz) : null);
     if (humHz && humHz > 40 && humHz < 70) {
@@ -480,7 +512,12 @@ export const App: React.FC = () => {
     });
   }, [scanResult]);
 
-  // Currently inspected finding for the docked "How We Know" panel
+  // Top 3 Findings for Simple Mode (Requirement 2)
+  const top3Findings = useMemo(() => {
+    return sortedFindings.slice(0, 3);
+  }, [sortedFindings]);
+
+  // Currently inspected finding for docked inspector
   const activeInspectedFinding = useMemo(() => {
     if (hoveredFindingId) {
       return sortedFindings.find(f => f.id === hoveredFindingId) || null;
@@ -491,7 +528,6 @@ export const App: React.FC = () => {
     return sortedFindings[0] || null;
   }, [hoveredFindingId, selectedFindingId, sortedFindings]);
 
-  // Keyboard navigation for findings (J / K)
   const handleNextFinding = () => {
     if (sortedFindings.length === 0) return;
     const currentIndex = sortedFindings.findIndex(f => f.id === selectedFindingId);
@@ -507,8 +543,15 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-beige-page text-forest-ink pb-24 md:pb-12 flex flex-col">
-      {/* Desktop Top Bar (Case name, SHA, Duration, RTF, Proof) */}
+    <div className="min-h-[100dvh] bg-beige-page text-forest-ink pb-24 md:pb-12 flex flex-col font-sans">
+      {/* Offline Alert Strip */}
+      {isOffline && (
+        <div className="bg-[#174D35] px-4 py-2 text-center text-xs font-bold text-[#8BCF55] border-b border-forest flex items-center justify-center gap-2">
+          <span>✓ Offline mode active. ECHO//TRACE runs 100% locally on your device with zero cloud requests.</span>
+        </div>
+      )}
+
+      {/* Desktop Top Bar */}
       <DesktopTopBar
         scanResult={scanResult}
         isScanning={isScanning}
@@ -520,6 +563,7 @@ export const App: React.FC = () => {
         viewMode={viewMode}
         onToggleViewMode={toggleViewMode}
         onOpenLiveRoomScan={() => setIsLiveRoomScanOpen(true)}
+        onOpenAdvancedDrawer={() => setIsAdvancedDrawerOpen(true)}
       />
 
       {/* Main Container with Left Icon Rail on Desktop */}
@@ -531,9 +575,17 @@ export const App: React.FC = () => {
         />
 
         {/* Main Content Area (Max 1560px, 32px gutters) */}
-        <main className="flex-1 mx-auto max-w-[1560px] px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+        <main className="flex-1 mx-auto max-w-[1560px] px-4 sm:px-6 lg:px-8 py-5 sm:py-6 space-y-6 sm:space-y-8">
           {activeTab === 'scan' && (
-            <div className="space-y-8">
+            <div className="space-y-6 sm:space-y-8">
+              {/* Dismissible First-Run Hints (Max 3) */}
+              <FirstRunHints
+                hasScanResult={scanResult !== null}
+                hasUltrasonic={ultrasonicBeaconFinding !== null}
+                isFixed={fixReport !== null}
+                onOpenFixer={() => setActiveTab('fix')}
+              />
+
               <ErrorBoundary fallbackTitle="Could not load Ingest Console">
                 <ScanConsole
                   onLoadIncident001={handleLoadIncident001}
@@ -590,161 +642,22 @@ export const App: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Synchronized Timeline Strip */}
-                    <div className="order-7 lg:order-none">
-                      <ErrorBoundary fallbackTitle="Could not load Timeline">
-                        <TimelineViewer
-                          findings={scanResult.findings}
-                          duration={scanResult.duration}
-                          visualBoxes={scanResult.visualBoxes}
-                          hoveredFindingId={hoveredFindingId || selectedFindingId}
-                        />
-                      </ErrorBoundary>
-                    </div>
-
-                    {/* Item 5 on Phone: Video Frame Preview with manual bounding boxes */}
-                    {videoFrames.length > 0 && (
-                      <div className="order-5 lg:order-none rounded-2xl border border-beige-hairline bg-beige-card p-5 shadow-panel space-y-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-beige-hairline pb-3">
-                          <div>
-                            <span className="font-display text-base font-bold text-forest-ink">
-                              Frame Optical X-Ray (Visual Layer)
-                            </span>
-                            <p className="text-xs text-forest-muted">
-                              Approximate skin chrominance heuristic. Draw custom blur boxes to redact misses.
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => setIsDrawingBlurBox(!isDrawingBlurBox)}
-                              className={`min-h-[44px] rounded-xl px-3.5 py-1.5 text-xs font-bold transition flex items-center gap-1.5 ${
-                                isDrawingBlurBox
-                                  ? 'bg-forest text-lime shadow-panel'
-                                  : 'border border-forest bg-forest/10 text-forest hover:bg-forest/20'
-                              }`}
-                            >
-                              <span>{isDrawingBlurBox ? '✓ Done Drawing' : '+ Draw Blur Box'}</span>
-                            </button>
-                            {scanResult.visualBoxes.length > 0 && (
-                              <button
-                                onClick={() => {
-                                  setScanResult({
-                                    ...scanResult,
-                                    visualBoxes: [],
-                                  });
-                                }}
-                                className="min-h-[44px] rounded-xl border border-beige-hairline bg-beige-sunken px-3 py-1.5 text-xs text-forest-muted hover:text-forest-ink"
-                                title="Clear all bounding boxes"
-                              >
-                                Clear Boxes
-                              </button>
-                            )}
-                          </div>
-                        </div>
-
-                        {isDrawingBlurBox && (
-                          <div className="rounded-xl border border-forest/30 bg-forest/10 px-3 py-2 text-xs text-forest flex items-center justify-between animate-pulse">
-                            <span>✏ Drag over video frame to add custom blur area</span>
-                            <span className="text-[11px] text-forest-muted">Release mouse/finger to finish</span>
-                          </div>
-                        )}
-
-                        <div className="relative overflow-hidden rounded-xl bg-forest-deep border border-forest/30 flex items-center justify-center shadow-data">
-                          <canvas
-                            ref={frameCanvasRef}
-                            style={{ cursor: isDrawingBlurBox ? 'crosshair' : 'default', touchAction: 'none' }}
-                            onMouseDown={(e) => {
-                              if (!isDrawingBlurBox) return;
-                              const coords = getCanvasCoords(e);
-                              setDrawStart(coords);
-                              setCurrentDrawBox({ x: coords.x, y: coords.y, w: 0, h: 0 });
-                            }}
-                            onMouseMove={(e) => {
-                              if (!isDrawingBlurBox || !drawStart) return;
-                              const coords = getCanvasCoords(e);
-                              const x = Math.min(drawStart.x, coords.x);
-                              const y = Math.min(drawStart.y, coords.y);
-                              const w = Math.abs(coords.x - drawStart.x);
-                              const h = Math.abs(coords.y - drawStart.y);
-                              setCurrentDrawBox({ x, y, w, h });
-                            }}
-                            onMouseUp={() => {
-                              if (!isDrawingBlurBox || !drawStart || !currentDrawBox) return;
-                              if (currentDrawBox.w > 0.02 && currentDrawBox.h > 0.02 && scanResult) {
-                                const newBox: VisualFindingBox = {
-                                  x: Number(currentDrawBox.x.toFixed(3)),
-                                  y: Number(currentDrawBox.y.toFixed(3)),
-                                  width: Number(currentDrawBox.w.toFixed(3)),
-                                  height: Number(currentDrawBox.h.toFixed(3)),
-                                  label: 'Manual Blur Area (User Defined)',
-                                  type: 'badge',
-                                  timestamp: 1.0,
-                                };
-                                setScanResult({
-                                  ...scanResult,
-                                  visualBoxes: [...scanResult.visualBoxes, newBox],
-                                });
-                              }
-                              setDrawStart(null);
-                              setCurrentDrawBox(null);
-                            }}
-                            onTouchStart={(e) => {
-                              if (!isDrawingBlurBox) return;
-                              const coords = getCanvasCoords(e);
-                              setDrawStart(coords);
-                              setCurrentDrawBox({ x: coords.x, y: coords.y, w: 0, h: 0 });
-                            }}
-                            onTouchMove={(e) => {
-                              if (!isDrawingBlurBox || !drawStart) return;
-                              const coords = getCanvasCoords(e);
-                              const x = Math.min(drawStart.x, coords.x);
-                              const y = Math.min(drawStart.y, coords.y);
-                              const w = Math.abs(coords.x - drawStart.x);
-                              const h = Math.abs(coords.y - drawStart.y);
-                              setCurrentDrawBox({ x, y, w, h });
-                            }}
-                            onTouchEnd={() => {
-                              if (!isDrawingBlurBox || !drawStart || !currentDrawBox) return;
-                              if (currentDrawBox.w > 0.02 && currentDrawBox.h > 0.02 && scanResult) {
-                                const newBox: VisualFindingBox = {
-                                  x: Number(currentDrawBox.x.toFixed(3)),
-                                  y: Number(currentDrawBox.y.toFixed(3)),
-                                  width: Number(currentDrawBox.w.toFixed(3)),
-                                  height: Number(currentDrawBox.h.toFixed(3)),
-                                  label: 'Manual Blur Area (User Defined)',
-                                  type: 'badge',
-                                  timestamp: 1.0,
-                                };
-                                setScanResult({
-                                  ...scanResult,
-                                  visualBoxes: [...scanResult.visualBoxes, newBox],
-                                });
-                              }
-                              setDrawStart(null);
-                              setCurrentDrawBox(null);
-                            }}
-                            className="h-auto max-h-[340px] w-full object-contain select-none"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Item 6 on Phone: Geolocation Map */}
-                    <div className="order-6 lg:order-none">
-                      <ErrorBoundary fallbackTitle="Could not load Geolocation Radar">
-                        <WorldMapCard metadata={scanResult.metadata} isFixed={fixReport !== null} />
-                      </ErrorBoundary>
-                    </div>
-
                     {/* F3: Attacker's View Intelligence Card */}
                     <div className="order-8 lg:order-none">
                       <ErrorBoundary fallbackTitle="Could not load Attacker's View">
                         <AttackersViewCard findings={scanResult.findings} />
                       </ErrorBoundary>
                     </div>
+
+                    {/* Geolocation Map */}
+                    <div className="order-6 lg:order-none">
+                      <ErrorBoundary fallbackTitle="Could not load Geolocation Radar">
+                        <WorldMapCard metadata={scanResult.metadata} isFixed={fixReport !== null} />
+                      </ErrorBoundary>
+                    </div>
                   </div>
 
-                  {/* Right 4 columns on Desktop: Score Hero, Findings List, Docked Inspector */}
+                  {/* Right 4 columns on Desktop: Score Hero, Top Findings, Before You Post */}
                   <div className="contents lg:block lg:col-span-4 lg:space-y-6">
                     {/* Item 1 on Phone: Score Hero */}
                     <div className="order-1 lg:order-none">
@@ -769,42 +682,45 @@ export const App: React.FC = () => {
                       </ErrorBoundary>
                     </div>
 
-                    {/* Item 3 on Phone: Swipeable Finding Cards (stacked on Desktop) */}
+                    {/* Simple Mode: Top 3 Findings in Plain English */}
                     <div className="order-3 lg:order-none space-y-3">
                       <div className="flex items-center justify-between px-1">
                         <h3 className="font-display text-base font-bold text-forest-ink">
-                          Privacy Leaks ({sortedFindings.length})
+                          Top Privacy Leaks ({top3Findings.length} of {sortedFindings.length})
                         </h3>
-                        <span className="text-xs text-forest-muted lg:hidden">Swipe cards ➔</span>
+                        <button
+                          onClick={() => setIsAdvancedDrawerOpen(true)}
+                          className="text-xs font-bold text-forest hover:underline"
+                        >
+                          View all {sortedFindings.length} in Advanced →
+                        </button>
                       </div>
 
-                      {/* Horizontal scroll snap on mobile, stacked on desktop */}
-                      <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-3 pt-1 -mx-4 px-4 sm:mx-0 sm:px-0 lg:block lg:space-y-4 lg:overflow-x-visible">
-                        {sortedFindings.map((f: Finding) => (
-                          <div key={f.id} className="min-w-[280px] max-w-[320px] snap-center shrink-0 lg:min-w-0 lg:max-w-none">
-                            <FindingCard
-                              finding={f}
-                              onFix={() => setActiveTab('fix')}
-                              isFixed={fixReport !== null}
-                              isHovered={hoveredFindingId === f.id || selectedFindingId === f.id}
-                              onMouseEnter={() => setHoveredFindingId(f.id)}
-                              onMouseLeave={() => setHoveredFindingId(null)}
-                              onSelect={() => setSelectedFindingId(f.id)}
-                              viewMode={viewMode}
-                            />
-                          </div>
+                      {/* Display Top 3 Cards */}
+                      <div className="space-y-3">
+                        {top3Findings.map((f: Finding) => (
+                          <FindingCard
+                            key={f.id}
+                            finding={f}
+                            onFix={() => setActiveTab('fix')}
+                            isFixed={fixReport !== null}
+                            isHovered={hoveredFindingId === f.id || selectedFindingId === f.id}
+                            onMouseEnter={() => setHoveredFindingId(f.id)}
+                            onMouseLeave={() => setHoveredFindingId(null)}
+                            onSelect={() => setSelectedFindingId(f.id)}
+                            viewMode={viewMode}
+                          />
                         ))}
                       </div>
-                    </div>
 
-                    {/* Docked "How We Know" Inspector Panel */}
-                    <div className="order-8 lg:order-none">
-                      <ErrorBoundary fallbackTitle="Could not load Inspector">
-                        <HowWeKnowPanel
-                          selectedFinding={activeInspectedFinding}
-                          totalFindingsCount={scanResult.findings.length}
-                        />
-                      </ErrorBoundary>
+                      {sortedFindings.length > 3 && (
+                        <button
+                          onClick={() => setIsAdvancedDrawerOpen(true)}
+                          className="w-full flex min-h-[48px] items-center justify-center gap-1.5 rounded-2xl border-2 border-forest/30 bg-beige-sunken/60 p-3 text-xs font-bold text-forest hover:bg-beige-sunken transition"
+                        >
+                          <span>Explore all {sortedFindings.length} findings in Advanced Drawer</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -827,7 +743,7 @@ export const App: React.FC = () => {
                     </h3>
                     <button
                       onClick={() => setActiveTab('fix')}
-                      className="rounded-xl border border-forest bg-forest px-4 py-2 font-display text-xs font-bold text-lime hover:bg-forest-deep transition"
+                      className="min-h-[44px] rounded-xl border border-forest bg-forest px-4 py-2 font-display text-xs font-bold text-lime hover:bg-forest-deep transition"
                     >
                       Go to Fixer →
                     </button>
@@ -846,6 +762,7 @@ export const App: React.FC = () => {
                           onFix={() => setActiveTab('fix')}
                           isHovered={selectedFindingId === f.id}
                           onSelect={() => setSelectedFindingId(f.id)}
+                          viewMode={viewMode}
                         />
                       ))}
                     </div>
@@ -863,6 +780,7 @@ export const App: React.FC = () => {
                           onFix={() => setActiveTab('fix')}
                           isHovered={selectedFindingId === f.id}
                           onSelect={() => setSelectedFindingId(f.id)}
+                          viewMode={viewMode}
                         />
                       ))}
                     </div>
@@ -879,6 +797,7 @@ export const App: React.FC = () => {
                           finding={f}
                           isHovered={selectedFindingId === f.id}
                           onSelect={() => setSelectedFindingId(f.id)}
+                          viewMode={viewMode}
                         />
                       ))}
                     </div>
@@ -897,14 +816,16 @@ export const App: React.FC = () => {
                 </div>
               ) : (
                 <ErrorBoundary fallbackTitle="Fixer Engine Encountered an Error">
-                  <FixerViewer
-                    scanResult={scanResult}
-                    videoFrames={videoFrames}
-                    audioChannelData={audioChannelData}
-                    sampleRate={scanResult.audioMetrics.sampleRate}
-                    onFixedComplete={handleFixComplete}
-                    existingReport={fixReport}
-                  />
+                  <Suspense fallback={<div className="p-12 text-center text-forest-muted font-mono text-sm">Loading Fixer engine...</div>}>
+                    <FixerViewer
+                      scanResult={scanResult}
+                      videoFrames={videoFrames}
+                      audioChannelData={audioChannelData}
+                      sampleRate={scanResult.audioMetrics.sampleRate}
+                      onFixedComplete={handleFixComplete}
+                      existingReport={fixReport}
+                    />
+                  </Suspense>
                 </ErrorBoundary>
               )}
             </div>
@@ -923,7 +844,7 @@ export const App: React.FC = () => {
                   </p>
                   <button
                     onClick={() => setIsShareModalOpen(true)}
-                    className="rounded-xl bg-lime border-2 border-lime px-6 py-3 font-display text-sm font-bold text-forest shadow-elevated hover:bg-lime-bright transition"
+                    className="min-h-[48px] rounded-xl bg-lime border-2 border-lime px-6 py-3 font-display text-sm font-bold text-forest shadow-elevated hover:bg-lime-bright transition"
                   >
                     Open Share Card Generator
                   </button>
@@ -939,108 +860,160 @@ export const App: React.FC = () => {
           {/* Tab: Timeline */}
           {activeTab === 'timeline' && (
             <ErrorBoundary fallbackTitle="Could not render Timeline">
-              <TimelineViewer
-                duration={scanResult?.duration || 15.0}
-                findings={scanResult?.findings || []}
-                visualBoxes={scanResult?.visualBoxes || []}
-                hoveredFindingId={hoveredFindingId || selectedFindingId}
-              />
+              <Suspense fallback={<div className="p-8 text-center text-forest-muted font-mono text-xs">Loading Timeline...</div>}>
+                <TimelineViewer
+                  duration={scanResult?.duration || 15.0}
+                  findings={scanResult?.findings || []}
+                  visualBoxes={scanResult?.visualBoxes || []}
+                  hoveredFindingId={hoveredFindingId || selectedFindingId}
+                />
+              </Suspense>
             </ErrorBoundary>
           )}
 
           {/* Tab: Evidence Graph */}
           {activeTab === 'evidence' && (
             <ErrorBoundary fallbackTitle="Could not render Evidence Graph">
-              <EvidenceGraph findings={scanResult?.findings || []} />
+              <Suspense fallback={<div className="p-8 text-center text-forest-muted font-mono text-xs">Loading Evidence Graph...</div>}>
+                <EvidenceGraph findings={scanResult?.findings || []} />
+              </Suspense>
             </ErrorBoundary>
           )}
 
           {/* Tab: ET-Bench */}
           {activeTab === 'bench' && (
             <ErrorBoundary fallbackTitle="Could not load ET-Bench">
-              <ETBenchPage />
+              <Suspense fallback={<div className="p-8 text-center text-forest-muted font-mono text-xs">Loading Benchmark Suite...</div>}>
+                <ETBenchPage />
+              </Suspense>
             </ErrorBoundary>
           )}
 
           {/* Tab: Self-Audit */}
           {activeTab === 'audit' && (
             <ErrorBoundary fallbackTitle="Could not load Self-Audit">
-              <SelfAuditPage />
+              <Suspense fallback={<div className="p-8 text-center text-forest-muted font-mono text-xs">Loading Self-Audit Suite...</div>}>
+                <SelfAuditPage />
+              </Suspense>
             </ErrorBoundary>
           )}
 
           {/* Tab: Verify Receipt */}
           {activeTab === 'verify' && (
             <ErrorBoundary fallbackTitle="Could not load Receipt Verifier">
-              <VerifyReceiptPage onClose={() => setActiveTab('scan')} />
+              <Suspense fallback={<div className="p-8 text-center text-forest-muted font-mono text-xs">Loading Verifier...</div>}>
+                <VerifyReceiptPage onClose={() => setActiveTab('scan')} />
+              </Suspense>
             </ErrorBoundary>
           )}
         </main>
       </div>
 
+      {/* Advanced Drawer (Houses deep timeline, graph, models, benches) */}
+      <Suspense fallback={null}>
+        <AdvancedDrawer
+          isOpen={isAdvancedDrawerOpen}
+          onClose={() => setIsAdvancedDrawerOpen(false)}
+          scanResult={scanResult}
+          videoFrames={videoFrames}
+          onOpenModelCard={() => {
+            setIsAdvancedDrawerOpen(false);
+            setIsModelCardOpen(true);
+          }}
+          onOpenBench={() => {
+            setIsAdvancedDrawerOpen(false);
+            setActiveTab('bench');
+          }}
+          onOpenAudit={() => {
+            setIsAdvancedDrawerOpen(false);
+            setActiveTab('audit');
+          }}
+          onOpenCommandPalette={() => {
+            setIsAdvancedDrawerOpen(false);
+            setIsCommandPaletteOpen(true);
+          }}
+        />
+      </Suspense>
+
       {/* Command Palette (Ctrl/Cmd+K) */}
-      <CommandPalette
-        isOpen={isCommandPaletteOpen}
-        onClose={() => setIsCommandPaletteOpen(false)}
-        onSelectTab={setActiveTab}
-        onLoadIncident001={handleLoadIncident001}
-        onUploadClick={() => {
-          const input = document.querySelector('input[type="file"]') as HTMLInputElement;
-          input?.click();
-        }}
-        onFixClick={() => setActiveTab('fix')}
-        onShareClick={() => {
-          if (scanResult) setIsShareModalOpen(true);
-          else setActiveTab('share');
-        }}
-        onStartTour={() => {
-          if (!scanResult) handleLoadIncident001();
-          setIsTourActive(true);
-        }}
-        onOpenAudit={() => setIsNetworkAuditOpen(true)}
-        onNextFinding={handleNextFinding}
-        onPrevFinding={handlePrevFinding}
-      />
+      <Suspense fallback={null}>
+        {isCommandPaletteOpen && (
+          <CommandPalette
+            isOpen={isCommandPaletteOpen}
+            onClose={() => setIsCommandPaletteOpen(false)}
+            onSelectTab={setActiveTab}
+            onLoadIncident001={handleLoadIncident001}
+            onUploadClick={() => {
+              const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+              input?.click();
+            }}
+            onFixClick={() => setActiveTab('fix')}
+            onShareClick={() => {
+              if (scanResult) setIsShareModalOpen(true);
+              else setActiveTab('share');
+            }}
+            onStartTour={() => {
+              if (!scanResult) handleLoadIncident001();
+              setIsTourActive(true);
+            }}
+            onOpenAudit={() => setIsNetworkAuditOpen(true)}
+            onNextFinding={handleNextFinding}
+            onPrevFinding={handlePrevFinding}
+          />
+        )}
+      </Suspense>
 
       {/* Share Card Modal */}
-      {isShareModalOpen && scanResult && (
-        <ShareCardModal
-          scanResult={scanResult}
-          fixReport={fixReport}
-          onClose={() => setIsShareModalOpen(false)}
-        />
-      )}
+      <Suspense fallback={null}>
+        {isShareModalOpen && scanResult && (
+          <ShareCardModal
+            scanResult={scanResult}
+            fixReport={fixReport}
+            onClose={() => setIsShareModalOpen(false)}
+          />
+        )}
+      </Suspense>
 
       {/* Network Request Audit Modal ("Prove it") */}
-      {isNetworkAuditOpen && (
-        <NetworkAuditModal onClose={() => setIsNetworkAuditOpen(false)} />
-      )}
+      <Suspense fallback={null}>
+        {isNetworkAuditOpen && (
+          <NetworkAuditModal onClose={() => setIsNetworkAuditOpen(false)} />
+        )}
+      </Suspense>
 
       {/* Model Card Modal */}
-      <ModelCardModal
-        isOpen={isModelCardOpen}
-        onClose={() => setIsModelCardOpen(false)}
-      />
+      <Suspense fallback={null}>
+        {isModelCardOpen && (
+          <ModelCardModal
+            isOpen={isModelCardOpen}
+            onClose={() => setIsModelCardOpen(false)}
+          />
+        )}
+      </Suspense>
 
       {/* Guided Auto-Tour Overlay */}
-      <AutoTourOverlay
-        isActive={isTourActive}
-        onClose={() => setIsTourActive(false)}
-        onNavigateTab={tab => setActiveTab(tab)}
-        onTriggerFix={() => {
-          setActiveTab('fix');
-        }}
-        onTriggerShare={() => {
-          setIsShareModalOpen(true);
-        }}
-      />
+      <Suspense fallback={null}>
+        {isTourActive && (
+          <AutoTourOverlay
+            isActive={isTourActive}
+            onClose={() => setIsTourActive(false)}
+            onNavigateTab={tab => setActiveTab(tab)}
+            onTriggerFix={() => setActiveTab('fix')}
+            onTriggerShare={() => setIsShareModalOpen(true)}
+          />
+        )}
+      </Suspense>
 
       {/* Live Room Scan Modal (F2) */}
-      <LiveRoomScanModal
-        isOpen={isLiveRoomScanOpen}
-        onClose={() => setIsLiveRoomScanOpen(false)}
-        onScanComplete={processIngestedMedia}
-      />
+      <Suspense fallback={null}>
+        {isLiveRoomScanOpen && (
+          <LiveRoomScanModal
+            isOpen={isLiveRoomScanOpen}
+            onClose={() => setIsLiveRoomScanOpen(false)}
+            onScanComplete={processIngestedMedia}
+          />
+        )}
+      </Suspense>
 
       {/* Mobile 4-Step Bottom Tab Bar */}
       <BottomTabBar
@@ -1048,6 +1021,21 @@ export const App: React.FC = () => {
         onSelectTab={setActiveTab}
         findingCount={criticalFindings.length + warnFindings.length}
       />
+
+      {/* Footer (Requirement 9: Hosted on Embarko) */}
+      <footer className="w-full border-t border-beige-hairline py-4 px-4 text-center text-xs text-forest-muted bg-beige-card/60 backdrop-blur-sm">
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <span>Hosted on <a href="https://embarko.app" target="_blank" rel="noopener noreferrer" className="font-bold text-forest hover:underline">Embarko</a></span>
+          <span>•</span>
+          <span>Built for the Embarko Student Challenge</span>
+          <span>•</span>
+          <span className="font-mono">{APP_CONFIG.hashtag}</span>
+          <span>•</span>
+          <button onClick={() => setIsTourActive(true)} className="font-bold text-forest hover:underline">
+            Take 68s Auto-Tour
+          </button>
+        </div>
+      </footer>
     </div>
   );
 };

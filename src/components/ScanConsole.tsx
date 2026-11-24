@@ -1,7 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Upload, Sparkles, FileVideo, Download, AlertCircle, ShieldCheck, CheckCircle2, Cpu, Wrench, Search, Mic } from 'lucide-react';
+import { Upload, Sparkles, FileVideo, Download, AlertCircle, ShieldCheck, Cpu, Wrench, Search, Mic } from 'lucide-react';
 import { ScanResult } from '../types';
-import { APP_COPY } from '../constants/copy';
 import { MiniLiveSpectrogram } from './MiniLiveSpectrogram';
 import { getNetworkAuditCount } from '../utils/networkAudit';
 
@@ -54,78 +53,72 @@ export const ScanConsole: React.FC<ScanConsoleProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* First Screen: Left = Headline + Promise + CTAs, Right = Mini Live Spectrogram */}
-      <div className="rounded-3xl border border-beige-hairline bg-beige-card p-6 sm:p-8 lg:p-10 shadow-panel">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          {/* Left Column (7 cols) */}
-          <div className="lg:col-span-7 space-y-5">
-            {/* 3-Second Hook */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-brick/40 bg-brick/10 px-3.5 py-1 text-xs font-semibold text-brick">
-              <span className="h-2 w-2 rounded-full bg-brick animate-ping" />
-              <span>“This 15-second reel leaked my room, my voice and a tracker.”</span>
-            </div>
-
-            {/* Main Headline */}
-            <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-black text-forest-ink leading-[1.15] text-balance">
+      {/* Above-the-fold Hero Card (strictly tuned for 390x844 mobile viewport) */}
+      <div className="rounded-3xl border border-beige-hairline bg-beige-card p-4 sm:p-6 lg:p-8 shadow-panel">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8 items-center">
+          {/* Left Column (7 cols on desktop): Headline, Sentence, CTAs, Privacy Badge */}
+          <div className="lg:col-span-7 space-y-3.5 sm:space-y-4">
+            {/* Main Headline (One headline) */}
+            <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black text-forest-ink leading-tight text-balance">
               Drop any video you were about to post.{' '}
               <span className="text-forest">See what it secretly leaks.</span> Fix it in one tap.
             </h1>
 
-            {/* One-Line Promise */}
-            <p className="text-base sm:text-lg text-forest-muted leading-relaxed font-normal max-w-xl">
-              100% client-side privacy X-ray for videos and voice notes. Real mathematical signal processing runs directly on your device with zero data upload.
+            {/* One-Line Promise (One sentence) */}
+            <p className="text-sm sm:text-base text-forest-muted leading-relaxed font-normal">
+              100% private, on-device privacy scanner. Mathematical signal analysis runs directly in your browser with zero data upload.
             </p>
 
-            {/* The Action Buttons (Incident 001, Own File, Live Room Scan) */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-              {/* Primary: Big Lime CTA with Forest Text */}
+            {/* Primary & Secondary Action Buttons */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+              {/* Primary: Big Lime CTA with Forest Text (Touch target >= 48px) */}
               <button
                 onClick={onLoadIncident001}
                 disabled={isScanning}
-                className="group flex flex-col items-start justify-center rounded-2xl bg-lime p-4 text-left transition hover:bg-lime-bright active:scale-[0.98] shadow-elevated border-2 border-lime min-h-[90px]"
+                className="group col-span-1 flex flex-col items-start justify-center rounded-2xl bg-lime p-3 sm:p-3.5 text-left transition hover:bg-lime-bright active:scale-[0.98] shadow-elevated border-2 border-lime min-h-[72px] sm:min-h-[80px]"
               >
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-forest" />
-                  <span className="font-display text-base font-bold text-forest">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="h-4 w-4 text-forest shrink-0" />
+                  <span className="font-display text-sm sm:text-base font-bold text-forest leading-snug">
                     Load INCIDENT-001
                   </span>
                 </div>
-                <span className="mt-1 text-xs text-forest/80 font-medium">
+                <span className="mt-0.5 text-[11px] sm:text-xs text-forest/80 font-medium">
                   15-second hostel reel
                 </span>
               </button>
 
-              {/* Secondary: Scan My Own File */}
+              {/* Secondary: Scan My Own File (Touch target >= 48px) */}
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isScanning}
-                className="group flex flex-col items-start justify-center rounded-2xl border-2 border-beige-hairline bg-beige-sunken/60 p-4 text-left transition hover:border-forest hover:bg-beige-sunken active:scale-[0.98] min-h-[90px]"
+                className="group col-span-1 flex flex-col items-start justify-center rounded-2xl border-2 border-beige-hairline bg-beige-sunken/60 p-3 sm:p-3.5 text-left transition hover:border-forest hover:bg-beige-sunken active:scale-[0.98] min-h-[72px] sm:min-h-[80px]"
               >
-                <div className="flex items-center gap-2">
-                  <Upload className="h-5 w-5 text-forest-muted group-hover:text-forest" />
-                  <span className="font-display text-base font-bold text-forest-ink">
+                <div className="flex items-center gap-1.5">
+                  <Upload className="h-4 w-4 text-forest-muted group-hover:text-forest shrink-0" />
+                  <span className="font-display text-sm sm:text-base font-bold text-forest-ink leading-snug">
                     Scan My File
                   </span>
                 </div>
-                <span className="mt-1 text-xs text-forest-muted font-mono truncate max-w-full">
-                  MP4, MOV, WAV, MP3, JPG
+                <span className="mt-0.5 text-[11px] sm:text-xs text-forest-muted font-mono truncate max-w-full">
+                  MP4, MOV, WAV, MP3
                 </span>
               </button>
 
-              {/* Tertiary: Scan Room Now (Live Mic) */}
+              {/* Tertiary: Scan Room Now */}
               {onOpenLiveRoomScan && (
                 <button
                   onClick={onOpenLiveRoomScan}
                   disabled={isScanning}
-                  className="group flex flex-col items-start justify-center rounded-2xl border-2 border-[#174D35] bg-[#174D35] p-4 text-left transition hover:bg-[#0B281B] active:scale-[0.98] min-h-[90px] shadow-sm"
+                  className="col-span-2 sm:col-span-1 group flex sm:flex-col items-center sm:items-start justify-between sm:justify-center rounded-2xl border-2 border-forest bg-forest p-3 sm:p-3.5 text-left transition hover:bg-forest-deep active:scale-[0.98] min-h-[48px] sm:min-h-[80px] shadow-sm"
                 >
-                  <div className="flex items-center gap-2">
-                    <Mic className="h-5 w-5 text-[#8BCF55]" />
-                    <span className="font-display text-base font-bold text-[#F3EBD8]">
+                  <div className="flex items-center gap-1.5">
+                    <Mic className="h-4 w-4 text-lime shrink-0" />
+                    <span className="font-display text-sm sm:text-base font-bold text-cream leading-snug">
                       Scan Room Now
                     </span>
                   </div>
-                  <span className="mt-1 text-xs text-[#8BCF55] font-mono">
+                  <span className="text-[11px] text-lime font-mono">
                     10s live mic capture
                   </span>
                 </button>
@@ -140,107 +133,83 @@ export const ScanConsole: React.FC<ScanConsoleProps> = ({
               className="hidden"
             />
 
-            {/* Drag & Drop Target */}
-            <div
-              onDragOver={e => {
-                e.preventDefault();
-                setDragOver(true);
-              }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={handleDrop}
-              className={`rounded-xl border-2 border-dashed p-3 text-center text-xs transition ${
-                dragOver
-                  ? 'border-forest bg-forest/10 text-forest font-bold'
-                  : 'border-beige-hairline bg-cream/70 text-forest-muted hover:border-forest/50'
-              }`}
-            >
-              <p>{dragOver ? 'Release to ingest file locally' : 'Or drop your video / voice note here (max 60s analyzed)'}</p>
+            {/* Privacy Badge */}
+            <div className="flex items-center justify-between gap-2 rounded-xl border border-beige-hairline bg-beige-sunken/50 px-3 py-2 text-xs text-forest-ink">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-forest shrink-0" />
+                <span className="font-bold text-forest">Nothing leaves your device</span>
+                <span className="hidden sm:inline text-forest-muted">• Zero server uploads</span>
+              </div>
+              <button
+                onClick={onOpenNetworkAudit}
+                className="flex items-center gap-1 rounded-md bg-beige-card border border-beige-hairline px-2 py-0.5 text-[11px] font-mono font-bold text-forest hover:border-forest"
+              >
+                <span>Requests:</span>
+                <span className="rounded bg-forest text-lime px-1">{requestCount}</span>
+              </button>
             </div>
 
             {/* Error Message Alert */}
             {errorMessage && (
-              <div className="flex items-center gap-2 rounded-xl bg-brick/15 border border-brick/40 p-3.5 text-xs text-brick">
+              <div className="flex items-center gap-2 rounded-xl bg-brick/15 border border-brick/40 p-3 text-xs text-brick">
                 <AlertCircle className="h-4 w-4 shrink-0 text-brick" />
                 <span className="font-medium">{errorMessage}</span>
               </div>
             )}
           </div>
 
-          {/* Right Column (5 cols): Live Looping Mini-Spectrogram on Forest Panel */}
+          {/* Right Column (5 cols on desktop): Muted Looping Mini-Spectrogram */}
           <div className="lg:col-span-5">
             <MiniLiveSpectrogram />
           </div>
         </div>
 
-        {/* 3 Step Cards: Scan, See, Fix */}
-        <div className="mt-8 pt-8 border-t border-beige-hairline grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="rounded-2xl border border-beige-hairline bg-cream/90 p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-2 text-forest">
+        {/* 3 Step Cards (visible on scroll or desktop) */}
+        <div className="mt-6 pt-6 border-t border-beige-hairline grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          <div className="rounded-2xl border border-beige-hairline bg-cream/90 p-3.5 shadow-sm">
+            <div className="flex items-center gap-2 mb-1.5 text-forest">
               <Cpu className="h-4 w-4 text-forest" />
-              <h4 className="font-display text-base font-bold text-forest-ink">
+              <h4 className="font-display text-sm sm:text-base font-bold text-forest-ink">
                 1. Scan
               </h4>
             </div>
             <p className="text-xs text-forest-muted leading-relaxed">
-              Real-time Web Audio FFT and frame filters decompose your file locally into 8 mathematical forensic layers.
+              Real-time Web Audio FFT and frame filters isolate ultrasonic trackers and location clues.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-beige-hairline bg-cream/90 p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-2 text-forest">
+          <div className="rounded-2xl border border-beige-hairline bg-cream/90 p-3.5 shadow-sm">
+            <div className="flex items-center gap-2 mb-1.5 text-forest">
               <Search className="h-4 w-4 text-forest" />
-              <h4 className="font-display text-base font-bold text-forest-ink">
+              <h4 className="font-display text-sm sm:text-base font-bold text-forest-ink">
                 2. See
               </h4>
             </div>
             <p className="text-xs text-forest-muted leading-relaxed">
-              Monotone-lightness spectrogram and optical X-ray pin down 19.4 kHz beacons, 50 Hz power hum, and faces.
+              Monotone spectrogram and optical X-ray pinpoint 19.4 kHz beacons, 50 Hz power hum, and faces.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-beige-hairline bg-cream/90 p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-2 text-forest">
+          <div className="rounded-2xl border border-beige-hairline bg-cream/90 p-3.5 shadow-sm">
+            <div className="flex items-center gap-2 mb-1.5 text-forest">
               <Wrench className="h-4 w-4 text-forest" />
-              <h4 className="font-display text-base font-bold text-forest-ink">
+              <h4 className="font-display text-sm sm:text-base font-bold text-forest-ink">
                 3. Fix
               </h4>
             </div>
             <p className="text-xs text-forest-muted leading-relaxed">
-              One-tap sanitizer strips ultrasonic tones, notches power hum, clears GPS tags, and permanently obscures faces.
+              One-tap sanitizer strips ultrasonic tones, notches hum, clears GPS, and permanently blurs faces.
             </p>
-          </div>
-        </div>
-
-        {/* Trust Row */}
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-beige-hairline bg-beige-sunken/60 px-4 py-3 text-xs text-forest-ink">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-forest" />
-            <span className="font-bold">Nothing leaves your device:</span>
-            <span className="text-forest-muted">Zero analytics, zero cloud backend, zero cookies.</span>
-          </div>
-
-          <div className="flex items-center gap-3 font-mono text-xs">
-            <button
-              onClick={onOpenNetworkAudit}
-              className="flex items-center gap-1.5 rounded-lg bg-beige-card border border-beige-hairline px-2.5 py-1 text-forest hover:border-forest transition font-bold"
-            >
-              <span>Network Requests:</span>
-              <span className="rounded bg-forest text-lime px-1.5 py-0.2 font-bold">{requestCount}</span>
-            </button>
-
-            <span className="rounded-lg bg-forest/10 border border-forest/20 px-2.5 py-1 font-bold text-forest">
-              Validated: 14/14 tests passing
-            </span>
           </div>
         </div>
       </div>
 
       {/* Active Scan Results Banner */}
       {scanResult && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-beige-hairline bg-beige-card px-5 py-4 font-mono text-xs shadow-panel">
-          <div className="flex items-center gap-2.5">
-            <FileVideo className="h-4 w-4 text-forest" />
-            <span className="font-bold text-forest-ink truncate max-w-[200px] sm:max-w-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-beige-hairline bg-beige-card px-4 sm:px-5 py-3 sm:py-4 font-mono text-xs shadow-panel">
+          <div className="flex items-center gap-2">
+            <FileVideo className="h-4 w-4 text-forest shrink-0" />
+            <span className="font-bold text-forest-ink truncate max-w-[180px] sm:max-w-xs">
               {scanResult.sourceName}
             </span>
             <span className="rounded bg-beige-sunken px-2 py-0.5 text-[11px] text-forest-muted">
@@ -253,7 +222,7 @@ export const ScanConsole: React.FC<ScanConsoleProps> = ({
 
           <button
             onClick={onExportResultsJson}
-            className="flex items-center gap-1.5 rounded-xl border border-beige-hairline bg-cream px-3 py-1.5 font-bold text-forest hover:bg-beige-sunken transition shadow-sm"
+            className="flex min-h-[44px] items-center gap-1.5 rounded-xl border border-beige-hairline bg-cream px-3 py-1.5 font-bold text-forest hover:bg-beige-sunken transition shadow-sm"
             title="Export computed parameters for validation against ground truth"
           >
             <Download className="h-3.5 w-3.5" />

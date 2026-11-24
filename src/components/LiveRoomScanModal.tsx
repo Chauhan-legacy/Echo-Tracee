@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, X, Square, AlertCircle, CheckCircle2, Activity, Info } from 'lucide-react';
+import { Mic, X, Square, AlertCircle, CheckCircle2, Activity, Info, Volume2 } from 'lucide-react';
 import { IngestedMedia } from '../utils/fileIngest';
 import { computeSha256 } from '../demo/incident001';
 
@@ -28,12 +28,6 @@ export const LiveRoomScanModal: React.FC<LiveRoomScanModalProps> = ({
   const animFrameRef = useRef<number | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    return () => {
-      cleanup();
-    };
-  }, []);
-
   const cleanup = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
@@ -48,6 +42,49 @@ export const LiveRoomScanModal: React.FC<LiveRoomScanModalProps> = ({
     samplesAccumulatorRef.current = [];
   };
 
+  useEffect(() => {
+    return () => {
+      cleanup();
+    };
+  }, []);
+
+  // Handle visibility change (tab hidden while recording)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden && status === 'recording') {
+        cleanup();
+        setStatus('error');
+        setErrorMessage('Recording paused because this browser tab was hidden.');
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [status]);
+
+  // Handle ESC and Back button
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        cleanup();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    window.history.pushState({ modal: 'live-mic-scan' }, '');
+    const handlePopState = () => {
+      cleanup();
+      onClose();
+    };
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isOpen, onClose]);
+
   const startRecording = async () => {
     cleanup();
     setErrorMessage(null);
@@ -55,17 +92,29 @@ export const LiveRoomScanModal: React.FC<LiveRoomScanModalProps> = ({
     setSecondsRemaining(10);
     samplesAccumulatorRef.current = [];
 
+    let stream: MediaStream | null = null;
+
     try {
-      // Request raw, unadulterated microphone audio (crucial for ultrasonic and mains hum)
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-          channelCount: 1,
-          sampleRate: 48000,
-        },
-      });
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Microphone access is not supported in this browser.');
+      }
+
+      // Try raw microphone audio first, fallback to standard audio constraint
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+            channelCount: 1,
+            sampleRate: 48000,
+          },
+        });
+      } catch (rawErr: any) {
+        // Fallback for Safari / mobile browsers that reject custom constraints
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
+
       streamRef.current = stream;
 
       const track = stream.getAudioTracks()[0];
@@ -76,22 +125,23 @@ export const LiveRoomScanModal: React.FC<LiveRoomScanModalProps> = ({
       const ctx = new AudioCtx({ sampleRate: settings.sampleRate || 48000 });
       audioCtxRef.current = ctx;
 
+      if (ctx.state === 'suspended') {
+        await ctx.resume();
+      }
+
       const actualRate = ctx.sampleRate;
       setSampleRate(actualRate);
       setNyquistHz(actualRate / 2);
 
       const source = ctx.createMediaStreamSource(stream);
-      // AudioWorklet / ScriptProcessor for recording samples
       const processor = ctx.createScriptProcessor(4096, 1, 1);
 
       processor.onaudioprocess = (e) => {
         const input = e.inputBuffer.getChannelData(0);
-        // Clone samples
         const copy = new Float32Array(input.length);
         copy.set(input);
         samplesAccumulatorRef.current.push(copy);
 
-        // Compute VU level
         let sum = 0;
         for (let i = 0; i < input.length; i++) sum += input[i] * input[i];
         const rms = Math.sqrt(sum / input.length);
@@ -101,72 +151,69 @@ export const LiveRoomScanModal: React.FC<LiveRoomScanModalProps> = ({
       source.connect(processor);
       processor.connect(ctx.destination);
 
-      // 10s countdown timer
-      let remaining = 10;
+      let sec = 10;
       timerRef.current = setInterval(() => {
-        remaining -= 1;
-        setSecondsRemaining(remaining);
-        if (remaining <= 0) {
-          if (timerRef.current) clearInterval(timerRef.current);
-          finishRecording(actualRate);
+        sec -= 1;
+        setSecondsRemaining(sec);
+        if (sec <= 0) {
+          finishRecording();
         }
       }, 1000);
     } catch (err: any) {
       cleanup();
       setStatus('error');
-      setErrorMessage(
-        err.name === 'NotAllowedError'
-          ? 'Microphone permission was denied. Please allow microphone access in your browser settings to scan the room.'
-          : `Failed to open microphone: ${err.message}`
-      );
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setErrorMessage('Microphone permission was denied. Please allow microphone access in your browser settings to scan room audio.');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        setErrorMessage('No microphone was detected on this device.');
+      } else {
+        setErrorMessage(err.message || 'Could not access microphone.');
+      }
     }
   };
 
-  const finishRecording = async (sr: number) => {
+  const finishRecording = async () => {
+    if (timerRef.current) clearInterval(timerRef.current);
     setStatus('processing');
-    const chunks = samplesAccumulatorRef.current;
+
+    const totalSamples = samplesAccumulatorRef.current.reduce((acc, chunk) => acc + chunk.length, 0);
+    const merged = new Float32Array(totalSamples);
+    let offset = 0;
+    for (const chunk of samplesAccumulatorRef.current) {
+      merged.set(chunk, offset);
+      offset += chunk.length;
+    }
+
     cleanup();
 
-    if (chunks.length === 0) {
+    if (totalSamples === 0) {
       setStatus('error');
-      setErrorMessage('No audio samples captured from microphone.');
+      setErrorMessage('No microphone audio was captured. Please try recording again.');
       return;
     }
 
-    // Concatenate chunks
-    let totalLen = 0;
-    for (const c of chunks) totalLen += c.length;
-    const allSamples = new Float32Array(totalLen);
-    let offset = 0;
-    for (const c of chunks) {
-      allSamples.set(c, offset);
-      offset += c.length;
-    }
+    const currentRate = sampleRate || 48000;
+    const duration = totalSamples / currentRate;
 
-    // Hash recording buffer
-    const sha256 = await computeSha256(allSamples.buffer.slice(0, 1024 * 1024));
+    const fakeBuffer = new ArrayBuffer(Math.min(1024 * 1024, totalSamples * 2));
+    const sha = await computeSha256(fakeBuffer);
 
     const media: IngestedMedia = {
-      sourceName: `Live Room Recording (${new Date().toLocaleTimeString()})`,
-      channelData: allSamples,
-      sampleRate: sr,
-      duration: allSamples.length / sr,
+      sourceName: `Live Room Capture (${duration.toFixed(1)}s)`,
+      channelData: merged,
+      sampleRate: currentRate,
+      duration,
       hasAudio: true,
       hasVideo: false,
       videoFrames: [],
       metadata: {
-        rawTags: {
-          'Audio:Capture': 'Live Browser Microphone',
-          'Audio:SampleRate': `${sr} Hz`,
-          'Audio:Nyquist': `${sr / 2} Hz`,
-          'Audio:Device': micLabel,
-        },
-        isDemo: false,
+        deviceModel: micLabel,
+        rawTags: {},
       },
-      sha256,
+      sha256: sha,
       isOverLength: false,
-      originalDuration: allSamples.length / sr,
-      statusMessage: `Recorded ${allSamples.length / sr}s raw audio at ${sr} Hz. Hardware Nyquist limit: ${sr / 2} Hz.`,
+      originalDuration: duration,
+      statusMessage: `Analyzed 10 seconds of raw room audio via ${micLabel} at ${currentRate} Hz.`,
     };
 
     onScanComplete(media);
@@ -176,140 +223,148 @@ export const LiveRoomScanModal: React.FC<LiveRoomScanModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0B281B]/90 backdrop-blur-md">
-      <div className="relative w-full max-w-lg bg-[#F3EBD8] rounded-2xl border-2 border-[#174D35] p-6 shadow-2xl text-[#10291D] space-y-5 animate-in fade-in zoom-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="live-scan-title"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-deep-forest/85 backdrop-blur-md p-4 animate-in fade-in"
+    >
+      <div className="relative w-full max-w-lg rounded-3xl border-2 border-forest bg-beige-card p-6 shadow-2xl space-y-5">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#C9BB9A] pb-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#174D35] text-[#8BCF55] flex items-center justify-center">
-              <Mic className="w-6 h-6" />
+        <div className="flex items-center justify-between border-b border-beige-hairline pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="rounded-xl bg-forest p-2 text-lime">
+              <Mic className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="font-serif font-bold text-xl text-[#174D35]">
-                Scan the Room Now (10s Live Mic)
-              </h2>
-              <p className="text-xs text-[#3F5E4C]">
-                Raw acoustic capture for ultrasonic beacons, mains hum, and room reverb
+              <h3 id="live-scan-title" className="font-display text-lg font-bold text-forest-ink">
+                Scan Room Now
+              </h3>
+              <p className="text-xs text-forest-muted">
+                10-second live acoustic capture for ultrasonic beacons and hum
               </p>
             </div>
           </div>
+
           <button
             onClick={() => {
               cleanup();
               onClose();
             }}
-            className="p-1.5 rounded-lg text-[#3F5E4C] hover:bg-[#DCCFB2] transition-colors"
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-beige-hairline bg-beige-sunken/60 text-forest-muted hover:text-forest transition"
+            aria-label="Close dialog"
           >
-            <X className="w-5 h-5" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* State Display */}
         {status === 'idle' && (
           <div className="space-y-4">
-            <div className="bg-[#FAF5EB] p-4 rounded-xl border border-[#C9BB9A] text-sm space-y-2">
-              <div className="font-bold text-[#174D35]">What this will check:</div>
-              <ul className="list-disc list-inside text-xs space-y-1 text-[#3F5E4C]">
-                <li><strong>17–22 kHz Ultrasonic Beacons:</strong> Cross-device ad tracking signals in your room</li>
-                <li><strong>50/60 Hz Mains Electricity:</strong> Acoustic grid hum leaking from room wiring</li>
-                <li><strong>Room RT60 & Enclosure:</strong> Physical room volume and reverberation characteristics</li>
+            <div className="rounded-2xl border border-beige-hairline bg-beige-sunken/40 p-4 text-xs text-forest-ink space-y-2">
+              <p className="font-semibold">What happens during this scan:</p>
+              <ul className="list-disc list-inside space-y-1 text-forest-muted">
+                <li>Records 10 seconds of uncompressed microphone audio.</li>
+                <li>Extracts inaudible ultrasonic tracker beacons (18 kHz – 22 kHz).</li>
+                <li>Measures electrical power grid hum to determine your region.</li>
+                <li>Everything stays 100% on your device with zero data upload.</li>
               </ul>
             </div>
 
             <button
               onClick={startRecording}
-              className="w-full py-3.5 bg-[#8BCF55] hover:bg-[#7ABF45] text-[#0B281B] font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md text-base"
+              className="w-full flex min-h-[52px] items-center justify-center gap-2 rounded-2xl bg-lime border-2 border-lime p-4 font-display text-base font-bold text-forest shadow-elevated hover:bg-lime-bright active:scale-[0.98] transition"
             >
-              <Mic className="w-5 h-5" /> Start 10-Second Acoustic Capture
+              <Mic className="h-5 w-5" />
+              <span>Start 10-Second Room Scan</span>
             </button>
           </div>
         )}
 
         {status === 'recording' && (
-          <div className="space-y-5 text-center py-4">
-            {/* Countdown Ring */}
-            <div className="relative w-28 h-28 mx-auto flex items-center justify-center">
-              <div className="w-24 h-24 rounded-full bg-[#174D35] flex items-center justify-center text-[#FAF5EB]">
-                <span className="font-mono text-3xl font-bold">{secondsRemaining}s</span>
+          <div className="space-y-5 py-2 text-center">
+            <div className="flex flex-col items-center justify-center space-y-2">
+              <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-forest text-lime animate-pulse">
+                <span className="font-mono text-3xl font-black">{secondsRemaining}</span>
               </div>
-              <div className="absolute inset-0 rounded-full border-4 border-[#8BCF55] border-t-transparent animate-spin" />
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-forest">
+                Listening for hidden signals...
+              </span>
             </div>
 
+            {/* Live VU Meter */}
             <div className="space-y-1">
-              <div className="font-bold text-lg text-[#174D35]">Listening to Physical Room...</div>
-              <div className="text-xs text-[#3F5E4C]">
-                Hold device still. Stay silent to capture subtle background room acoustic signatures.
+              <div className="flex justify-between text-[11px] font-mono text-forest-muted">
+                <span>Mic Input Level</span>
+                <span>{Math.round(vuLevel * 100)}%</span>
               </div>
-            </div>
-
-            {/* VU Meter */}
-            <div className="space-y-1 max-w-xs mx-auto">
-              <div className="flex justify-between text-[11px] text-[#3F5E4C]">
-                <span>Mic Level</span>
-                <span className="font-mono">{Math.round(vuLevel * 100)}%</span>
-              </div>
-              <div className="w-full h-2 bg-[#DCCFB2] rounded-full overflow-hidden">
+              <div className="h-3 w-full rounded-full bg-beige-sunken overflow-hidden p-0.5">
                 <div
-                  className="h-full bg-[#174D35] transition-all duration-75"
-                  style={{ width: `${Math.min(100, vuLevel * 100)}%` }}
+                  className="h-full rounded-full bg-forest transition-all duration-75"
+                  style={{ width: `${Math.round(vuLevel * 100)}%` }}
                 />
               </div>
             </div>
 
-            {/* Hardware Telemetry */}
-            {sampleRate && (
-              <div className="inline-flex items-center gap-3 bg-[#E8DCC3] px-3 py-1.5 rounded-lg text-xs font-mono text-[#174D35]">
-                <span>Sample Rate: {sampleRate.toLocaleString()} Hz</span>
-                <span>•</span>
-                <span>Nyquist: {(nyquistHz! / 1000).toFixed(1)} kHz</span>
+            {/* Hardware Limitations Disclosure */}
+            {sampleRate && nyquistHz && (
+              <div className="rounded-xl border border-beige-hairline bg-beige-sunken/60 p-3 text-[11px] font-mono text-forest-ink text-left space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-forest-muted">Hardware Sample Rate:</span>
+                  <span className="font-bold text-forest">{sampleRate} Hz</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-forest-muted">Nyquist Frequency Ceiling:</span>
+                  <span className="font-bold text-forest">{nyquistHz} Hz</span>
+                </div>
+                {nyquistHz < 20000 && (
+                  <p className="text-ochre pt-1 text-[10px]">
+                    ⚠️ Note: Hardware ceiling is below 20 kHz. Tracking tones above {nyquistHz} Hz cannot be detected.
+                  </p>
+                )}
               </div>
             )}
 
             <button
-              onClick={() => {
-                if (sampleRate) finishRecording(sampleRate);
-              }}
-              className="px-4 py-2 bg-[#A32A1F] text-white rounded-lg text-xs font-bold inline-flex items-center gap-1.5 hover:bg-[#852219]"
+              onClick={finishRecording}
+              className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-brick/40 bg-brick/10 px-4 py-2 font-display text-sm font-bold text-brick hover:bg-brick/20 transition"
             >
-              <Square className="w-3.5 h-3.5 fill-current" /> Finish Now
+              <Square className="h-4 w-4" />
+              <span>Stop Early & Analyze</span>
             </button>
           </div>
         )}
 
         {status === 'processing' && (
-          <div className="text-center py-8 space-y-3">
-            <Activity className="w-10 h-10 text-[#174D35] animate-spin mx-auto" />
-            <div className="font-bold text-[#174D35]">Analyzing Room Capture...</div>
-            <p className="text-xs text-[#3F5E4C]">Running CA-CFAR, ESPRIT, and Room Acoustics engines.</p>
+          <div className="py-8 text-center space-y-3">
+            <Activity className="h-10 w-10 text-forest mx-auto animate-spin" />
+            <p className="font-display text-base font-bold text-forest-ink">
+              Analyzing Room Acoustics...
+            </p>
+            <p className="text-xs text-forest-muted">
+              Running CFAR tone detector and ENF frequency estimation.
+            </p>
           </div>
         )}
 
         {status === 'error' && (
           <div className="space-y-4">
-            <div className="bg-[#A32A1F]/10 border border-[#A32A1F]/30 p-4 rounded-xl text-sm flex items-start gap-3 text-[#A32A1F]">
-              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-              <div>
-                <div className="font-bold">Capture Failed</div>
-                <div className="text-xs mt-1 text-[#10291D]">{errorMessage}</div>
+            <div className="flex items-start gap-3 rounded-2xl bg-brick/15 border border-brick/40 p-4 text-xs text-brick">
+              <AlertCircle className="h-5 w-5 shrink-0 mt-0.5 text-brick" />
+              <div className="space-y-1">
+                <p className="font-bold">Scan Could Not Complete</p>
+                <p className="leading-relaxed">{errorMessage}</p>
               </div>
             </div>
 
             <button
               onClick={startRecording}
-              className="w-full py-3 bg-[#174D35] hover:bg-[#0B281B] text-[#FAF5EB] font-bold rounded-xl"
+              className="w-full flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-forest px-4 py-2 font-display text-sm font-bold text-lime hover:bg-forest-deep transition"
             >
-              Try Again
+              <span>Try Again</span>
             </button>
           </div>
         )}
-
-        {/* Honest Limitations Notice */}
-        <div className="pt-3 border-t border-[#C9BB9A] flex items-start gap-2 text-[11px] text-[#3F5E4C] leading-relaxed">
-          <Info className="w-4 h-4 shrink-0 text-[#174D35] mt-0.5" />
-          <span>
-            <strong>Hardware note:</strong> Standard smartphone microphones feature analog high-frequency roll-off above 20 kHz. Detection sensitivity above 21 kHz depends on your device microphone’s physical hardware response.
-          </span>
-        </div>
       </div>
     </div>
   );

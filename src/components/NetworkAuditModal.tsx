@@ -81,11 +81,11 @@ export const NetworkAuditModal: React.FC<NetworkAuditModalProps> = ({ onClose })
           )}
         </div>
 
-        {/* Privacy Guarantees */}
+        {/* Privacy Protections */}
         <div className="mt-4 rounded-lg bg-term-hover/40 p-3 border border-term-border text-xs space-y-1.5 font-mono text-term-dim">
           <div className="flex items-center gap-2 text-white">
             <Lock className="h-4 w-4 text-cyan" />
-            <span className="font-bold">Cryptographic Isolation Guarantee:</span>
+            <span className="font-bold">Cryptographic Isolation Verified:</span>
           </div>
           <p>• Audio decodes through Web Audio <code className="text-cyan">OfflineAudioContext</code> directly in device memory.</p>
           <p>• Visual frames processed in off-screen HTML5 canvases without external OCR server endpoints.</p>

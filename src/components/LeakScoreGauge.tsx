@@ -162,6 +162,9 @@ export const LeakScoreGauge: React.FC<LeakScoreGaugeProps> = ({
           {/* Right Information / Verdict */}
           <div className="flex-1 min-w-0 space-y-3 text-center sm:text-left">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-forest bg-forest/10 px-2 py-0.5 rounded">
+                Leak Score
+              </span>
               <span
                 className={`inline-block rounded-md px-2.5 py-1 font-mono text-xs font-bold uppercase tracking-wider ${
                   score.totalScore >= 70

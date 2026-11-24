@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Play, Pause, SkipForward, X, Sparkles, Video } from 'lucide-react';
+import { Play, Pause, SkipForward, X, Sparkles, ExternalLink, QrCode } from 'lucide-react';
+import { SITE_URL, APP_CONFIG } from '../config';
 
 interface AutoTourOverlayProps {
   isActive: boolean;
@@ -14,42 +15,42 @@ const CINEMATIC_TOUR_STEPS = [
     step: 1,
     title: 'THE 3-SECOND HOOK',
     tab: 'scan' as const,
-    caption: '“This 15-second reel leaked my room, my voice, and a tracker.” Drop any video you were about to post. See what it secretly leaks.',
+    caption: '“This 15-second reel leaked my room, my voice and a tracker.” Drop any video you were about to post. See what it secretly leaks.',
     durationMs: 8000,
   },
   {
     step: 2,
-    title: 'WHAT IT IS: PRIVACY X-RAY',
+    title: '100% ON-DEVICE PRIVACY X-RAY',
     tab: 'scan' as const,
-    caption: 'ECHO//TRACE is a 100% client-side privacy X-ray for videos and voice notes. Real mathematical DSP and computer vision running directly inside your browser.',
+    caption: 'ECHO//TRACE is a client-side privacy scanner. Mathematical signal processing runs directly in your browser with zero data upload.',
     durationMs: 8000,
   },
   {
     step: 3,
     title: 'ZERO-UPLOAD INGESTION',
     tab: 'scan' as const,
-    caption: 'Ingesting INCIDENT-001: The Hostel Reel. Computing Web Crypto SHA-256 fingerprint, parsing container atoms, and extracting 48 kHz uncompressed audio.',
+    caption: 'Ingesting INCIDENT-001. Computing Web Crypto SHA-256 fingerprint, parsing container atoms, and extracting 48 kHz uncompressed audio.',
     durationMs: 8000,
   },
   {
     step: 4,
-    title: 'REAL DSP SPECTRAL SWEEP',
+    title: 'REAL-TIME SPECTRAL SWEEP',
     tab: 'scan' as const,
-    caption: 'Watch the cyan sweep: Real-time Cooley-Tukey STFT, Cell-Averaging CFAR tone detector, and quadratic peak interpolation running on actual samples.',
+    caption: 'Watch the spectral sweep: Real-time FFT, Cell-Averaging CFAR tone detector, and quadratic peak interpolation running on actual samples.',
     durationMs: 8000,
   },
   {
     step: 5,
-    title: 'FORENSIC FINDINGS LOCKED',
-    tab: 'findings' as const,
-    caption: 'Multiple leaks exposed: 50.02 Hz electrical grid hum, inaudible 19.4 kHz tracking beacon, whiteboard Wi-Fi credentials, and embedded Gujarat GPS coordinates.',
-    durationMs: 9500,
+    title: 'FORENSIC LEAKS IDENTIFIED',
+    tab: 'scan' as const,
+    caption: 'Multiple leaks exposed: 50.02 Hz electrical grid hum, inaudible 19.4 kHz tracking beacon, and embedded Gujarat GPS coordinates.',
+    durationMs: 9000,
   },
   {
     step: 6,
-    title: 'HERO FIXER: ONE-TAP SANITIZATION',
+    title: 'ONE-TAP SANITIZATION',
     tab: 'fix' as const,
-    caption: 'Hero moment: Surgical biquad notch filters strip the tracker (-28 dB), canvas pixelation blurs passwords, and container GPS atoms are completely wiped.',
+    caption: 'One tap cleans everything: Zero-phase notch filters strip the tracker, facial blur masks identities, and GPS container atoms are wiped.',
     durationMs: 9000,
     action: 'fix',
   },
@@ -58,15 +59,16 @@ const CINEMATIC_TOUR_STEPS = [
     title: 'BEFORE / AFTER VERIFICATION',
     tab: 'fix' as const,
     caption: 'Drag the split-slider! Watch the 19.4 kHz tracker spike physically vanish! Leak score drops from 82 to 8, signed with Web Crypto ECDSA.',
-    durationMs: 8500,
+    durationMs: 9000,
   },
   {
     step: 8,
-    title: 'SHARE & EMBARKO FINISH',
+    title: 'DEPLOY WITH EMBARKO',
     tab: 'share' as const,
-    caption: 'Ready for deployment! Share scorecard generated with #DeployWithEmbarko. 100% client-side. Zero cloud uploads. Verified for Embarko Student Challenge.',
-    durationMs: 7000,
+    caption: 'Ready for the Embarko Student Challenge. 100% client-side privacy protection. Live on Embarko.',
+    durationMs: 9000,
     action: 'share',
+    isEndCard: true,
   },
 ];
 
@@ -90,9 +92,9 @@ export const AutoTourOverlay: React.FC<AutoTourOverlayProps> = ({
     onNavigateTab(current.tab);
 
     if (current.action === 'fix') {
-      setTimeout(() => onTriggerFix(), 1200);
+      setTimeout(() => onTriggerFix(), 1000);
     } else if (current.action === 'share') {
-      setTimeout(() => onTriggerShare(), 2000);
+      setTimeout(() => onTriggerShare(), 1500);
     }
 
     if (isPaused) return;
@@ -113,65 +115,91 @@ export const AutoTourOverlay: React.FC<AutoTourOverlayProps> = ({
   const current = CINEMATIC_TOUR_STEPS[stepIndex];
 
   return (
-    <div className="fixed bottom-20 left-3 right-3 z-50 mx-auto max-w-2xl animate-in slide-in-from-bottom duration-300">
-      <div className="rounded-2xl border-2 border-cyan bg-[#080B11]/95 p-5 shadow-[0_0_35px_rgba(0,240,255,0.4)] backdrop-blur-md">
+    <div className="fixed bottom-20 sm:bottom-12 left-3 right-3 z-50 mx-auto max-w-2xl animate-in slide-in-from-bottom duration-300">
+      <div className="rounded-3xl border-2 border-forest bg-[#0B281B]/95 p-5 sm:p-6 shadow-2xl backdrop-blur-md">
         {/* Header */}
-        <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-term-border">
+        <div className="flex items-center justify-between pb-3 mb-3 border-b border-forest/50">
           <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-cyan/20 text-cyan">
-              <Sparkles className="h-3.5 w-3.5 animate-spin" />
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-forest text-lime">
+              <Sparkles className="h-4 w-4 animate-spin" />
             </span>
-            <span className="font-mono text-xs font-black uppercase tracking-wider text-cyan">
+            <span className="font-mono text-xs font-bold uppercase tracking-wider text-lime">
               {current.title}
             </span>
-            <span className="rounded bg-cyan/20 px-2 py-0.5 font-mono text-[10px] font-bold text-cyan">
+            <span className="rounded bg-forest/80 px-2 py-0.5 font-mono text-[10px] font-bold text-cream">
               {stepIndex + 1} / {CINEMATIC_TOUR_STEPS.length}
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => setIsPaused(!isPaused)}
-              className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-lg text-term-dim hover:text-white"
+              className="flex h-11 w-11 items-center justify-center rounded-xl bg-forest/40 text-cream hover:text-lime transition"
               title={isPaused ? 'Resume tour' : 'Pause tour'}
+              aria-label={isPaused ? 'Resume tour' : 'Pause tour'}
             >
-              {isPaused ? <Play className="h-4 w-4 text-cyan fill-cyan" /> : <Pause className="h-4 w-4" />}
+              {isPaused ? <Play className="h-4 w-4 fill-lime text-lime" /> : <Pause className="h-4 w-4" />}
             </button>
             <button
               onClick={() => {
                 if (stepIndex < CINEMATIC_TOUR_STEPS.length - 1) setStepIndex(s => s + 1);
                 else onClose();
               }}
-              className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-lg text-term-dim hover:text-white"
+              className="flex h-11 w-11 items-center justify-center rounded-xl bg-forest/40 text-cream hover:text-lime transition"
               title="Next step"
+              aria-label="Next step"
             >
               <SkipForward className="h-4 w-4" />
             </button>
             <button
               onClick={onClose}
-              className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-lg text-term-dim hover:text-white"
+              className="flex h-11 w-11 items-center justify-center rounded-xl bg-forest/40 text-cream hover:text-lime transition"
               title="Close tour"
+              aria-label="Close tour"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
         </div>
 
-        {/* Large Cinematic Subtitles for Hands-Free Screen Recording */}
-        <p className="font-sans text-base sm:text-lg font-semibold text-white leading-relaxed tracking-wide drop-shadow-sm">
+        {/* Large Cinematic Subtitles */}
+        <p className="font-display text-base sm:text-xl font-bold text-cream leading-relaxed tracking-wide">
           {current.caption}
         </p>
 
-        {/* Step progress bar */}
-        <div className="mt-3.5 flex items-center gap-2">
-          <div className="h-1.5 flex-1 rounded-full bg-term-border overflow-hidden">
+        {/* Step 8 End Card Banner */}
+        {current.isEndCard && (
+          <div className="mt-4 rounded-2xl border border-lime/40 bg-forest/50 p-4 flex flex-wrap items-center justify-between gap-3 animate-in zoom-in-95">
+            <div>
+              <p className="font-display text-base font-bold text-lime">
+                Built with AI. Live on Embarko.
+              </p>
+              <p className="font-mono text-xs text-cream/90 mt-0.5">
+                {SITE_URL} • {APP_CONFIG.hashtag}
+              </p>
+            </div>
+            <a
+              href={SITE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 rounded-xl bg-lime px-3.5 py-2 font-display text-xs font-bold text-forest hover:bg-lime-bright transition shadow-sm"
+            >
+              <span>Visit Site</span>
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          </div>
+        )}
+
+        {/* Progress Bar (68s total duration) */}
+        <div className="mt-4 flex items-center gap-2.5">
+          <div className="h-2 flex-1 rounded-full bg-forest overflow-hidden">
             <div
-              className="h-full bg-cyan transition-all duration-300 shadow-glow-cyan"
+              className="h-full bg-lime transition-all duration-300"
               style={{ width: `${((stepIndex + 1) / CINEMATIC_TOUR_STEPS.length) * 100}%` }}
             />
           </div>
-          <span className="font-mono text-[10px] text-term-dim font-bold">
-            ~65s Demo Tour
+          <span className="font-mono text-[11px] text-cream/80 font-bold">
+            ~68s Auto-Tour
           </span>
         </div>
       </div>

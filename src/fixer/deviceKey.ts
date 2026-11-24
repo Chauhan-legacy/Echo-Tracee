@@ -26,6 +26,15 @@ let inMemoryFallbackKey: {
   fingerprint: string;
 } | null = null;
 
+let lastStorageNotice: string | null = null;
+
+export function getDeviceSecurityNotice(): string | null {
+  if (typeof window !== 'undefined' && window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return 'Web Crypto is restricted over insecure HTTP. In-memory temporary key active.';
+  }
+  return lastStorageNotice;
+}
+
 function openKeystoreDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     if (typeof indexedDB === 'undefined') {
@@ -120,6 +129,7 @@ export async function getOrCreateDeviceKeyPair(): Promise<{
       fingerprint,
     };
   } catch (err) {
+    lastStorageNotice = 'Notice: Local storage is restricted (private browsing). Device signing key stored in temporary memory for this session.';
     // Memory fallback if IndexedDB fails (e.g. private browsing or test environment)
     if (inMemoryFallbackKey) {
       return inMemoryFallbackKey;

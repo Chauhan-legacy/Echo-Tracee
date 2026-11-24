@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, ShieldCheck, Video, Command, Search, Sparkles, HardDrive, Mic, Sliders } from 'lucide-react';
+import { Shield, ShieldCheck, Video, Command, Search, Sparkles, HardDrive, Mic, Sliders, Layers } from 'lucide-react';
 import { WaveformLogo } from './WaveformLogo';
 import { ScanResult } from '../types';
 
@@ -14,6 +14,7 @@ interface DesktopTopBarProps {
   viewMode?: 'plain' | 'technical';
   onToggleViewMode?: () => void;
   onOpenLiveRoomScan?: () => void;
+  onOpenAdvancedDrawer?: () => void;
 }
 
 export const DesktopTopBar: React.FC<DesktopTopBarProps> = ({
@@ -27,6 +28,7 @@ export const DesktopTopBar: React.FC<DesktopTopBarProps> = ({
   viewMode = 'plain',
   onToggleViewMode,
   onOpenLiveRoomScan,
+  onOpenAdvancedDrawer,
 }) => {
   const duration = scanResult ? `${scanResult.duration.toFixed(1)}s` : '15.0s';
   const shaPrefix = scanResult ? scanResult.sha256.slice(0, 8) : 'e3b0c442';
@@ -35,14 +37,14 @@ export const DesktopTopBar: React.FC<DesktopTopBarProps> = ({
   const rtf = scanResult?.realtimeFactor ? `${scanResult.realtimeFactor.toFixed(2)}x` : '0.012x';
 
   return (
-    <header className="sticky top-0 z-30 border-b border-beige-hairline bg-beige-card/95 backdrop-blur-md px-4 sm:px-6 py-2">
-      <div className="mx-auto flex max-w-[1560px] items-center justify-between gap-4">
+    <header className="sticky top-0 z-30 border-b border-beige-hairline bg-beige-card/95 backdrop-blur-md px-3 sm:px-6 py-1.5 sm:py-2">
+      <div className="mx-auto flex max-w-[1560px] items-center justify-between gap-2 sm:gap-4">
         {/* Left: Logo & Case Metadata */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           <WaveformLogo isScanning={isScanning} />
 
           {/* Slim Case Info pill on desktop */}
-          <div className="hidden lg:flex items-center gap-2 rounded-xl border border-beige-hairline bg-beige-sunken/60 px-3 py-1 font-mono text-xs text-forest-ink">
+          <div className="hidden xl:flex items-center gap-2 rounded-xl border border-beige-hairline bg-beige-sunken/60 px-3 py-1 font-mono text-xs text-forest-ink">
             <span className="font-bold text-forest">CASE:</span>
             <span className="font-semibold">{scanResult?.isDemo ? 'INCIDENT-001' : 'INSPECT-01'}</span>
             <span className="text-forest-muted">|</span>
@@ -60,12 +62,12 @@ export const DesktopTopBar: React.FC<DesktopTopBarProps> = ({
         </div>
 
         {/* Right Controls: View Mode, Live Mic, Command Palette, Privacy Badge */}
-        <div className="flex items-center gap-2">
-          {/* Plain / Technical Switch (F4) */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Plain / Technical Switch (F4) - desktop only */}
           {onToggleViewMode && (
             <button
               onClick={onToggleViewMode}
-              className="flex items-center gap-1 rounded-xl border border-beige-hairline bg-cream px-2.5 py-1 text-xs font-bold text-forest hover:bg-beige-sunken transition shadow-sm"
+              className="hidden xl:flex items-center gap-1 rounded-xl border border-beige-hairline bg-cream px-2.5 py-1 text-xs font-bold text-forest hover:bg-beige-sunken transition shadow-sm"
               title="Toggle between Plain Language and Technical Forensic metrics"
             >
               <Sliders className="h-3.5 w-3.5 text-forest" />
@@ -75,22 +77,34 @@ export const DesktopTopBar: React.FC<DesktopTopBarProps> = ({
             </button>
           )}
 
-          {/* Live Mic Scan Trigger (F2) */}
+          {/* Live Mic Scan Trigger (F2) - desktop only */}
           {onOpenLiveRoomScan && (
             <button
               onClick={onOpenLiveRoomScan}
-              className="flex items-center gap-1.5 rounded-xl border border-forest/30 bg-[#174D35] px-3 py-1 text-xs font-bold text-[#8BCF55] hover:bg-[#0B281B] transition shadow-sm"
+              className="hidden lg:flex items-center gap-1.5 rounded-xl border border-forest/30 bg-[#174D35] px-3 py-1 text-xs font-bold text-[#8BCF55] hover:bg-[#0B281B] transition shadow-sm"
               title="Record 10 seconds of raw microphone audio to check your room"
             >
               <Mic className="h-3.5 w-3.5 text-[#8BCF55]" />
-              <span className="hidden md:inline">Scan Room</span>
+              <span>Scan Room</span>
             </button>
           )}
 
-          {/* Command Palette Trigger */}
+          {/* Advanced Drawer Trigger */}
+          {onOpenAdvancedDrawer && (
+            <button
+              onClick={onOpenAdvancedDrawer}
+              className="flex min-h-[38px] items-center gap-1.5 rounded-xl border border-beige-hairline bg-cream px-2.5 sm:px-3 py-1 text-xs font-bold text-forest hover:bg-beige-sunken transition shadow-sm"
+              title="Open Advanced Forensic Drawer (Deep timeline, graphs, models)"
+            >
+              <Layers className="h-3.5 w-3.5 text-forest" />
+              <span className="hidden sm:inline">Advanced</span>
+            </button>
+          )}
+
+          {/* Command Palette Trigger - desktop only */}
           <button
             onClick={onOpenCommandPalette}
-            className="flex items-center gap-1.5 rounded-xl border border-beige-hairline bg-cream px-3 py-1.5 text-xs font-mono text-forest-ink hover:bg-beige-sunken transition shadow-sm"
+            className="hidden lg:flex items-center gap-1.5 rounded-xl border border-beige-hairline bg-cream px-3 py-1.5 text-xs font-mono text-forest-ink hover:bg-beige-sunken transition shadow-sm"
             title="Open command palette (Ctrl/Cmd+K)"
           >
             <Search className="h-3.5 w-3.5 text-forest-muted" />
@@ -101,7 +115,7 @@ export const DesktopTopBar: React.FC<DesktopTopBarProps> = ({
           </button>
 
           {/* Privacy Proof badge */}
-          <div className="hidden sm:flex items-center gap-1.5 rounded-xl bg-forest/10 border border-forest/20 px-3 py-1 text-xs font-semibold text-forest">
+          <div className="hidden xl:flex items-center gap-1.5 rounded-xl bg-forest/10 border border-forest/20 px-3 py-1 text-xs font-semibold text-forest">
             <Shield className="h-3.5 w-3.5 text-forest" />
             <span>Nothing leaves your device</span>
           </div>
@@ -109,26 +123,26 @@ export const DesktopTopBar: React.FC<DesktopTopBarProps> = ({
           {/* Prove it Button */}
           <button
             onClick={onOpenNetworkAudit}
-            className="flex min-h-[38px] items-center gap-1.5 rounded-xl bg-forest px-3 py-1 text-xs font-bold text-lime hover:bg-forest-deep transition shadow-sm"
+            className="flex min-h-[38px] items-center gap-1.5 rounded-xl bg-forest px-2.5 sm:px-3 py-1 text-xs font-bold text-lime hover:bg-forest-deep transition shadow-sm"
             title="Inspect runtime network requests (proves zero user data transmitted)"
           >
             <ShieldCheck className="h-3.5 w-3.5" />
             <span>Prove it</span>
           </button>
 
-          {/* Model Card Link Button */}
+          {/* Model Card Link Button - desktop only */}
           <button
             onClick={onOpenModelCard}
-            className="hidden sm:flex min-h-[38px] items-center gap-1.5 rounded-xl border border-beige-hairline bg-cream px-3 py-1 text-xs font-bold text-forest hover:bg-beige-sunken transition shadow-sm"
+            className="hidden xl:flex min-h-[38px] items-center gap-1.5 rounded-xl border border-beige-hairline bg-cream px-3 py-1 text-xs font-bold text-forest hover:bg-beige-sunken transition shadow-sm"
             title="View ML Model Cards, metrics, and honest disclosures"
           >
             <span>Model Cards</span>
           </button>
 
-          {/* Recording Mode Toggle */}
+          {/* Recording Mode Toggle - desktop only */}
           <button
             onClick={onToggleRecordingMode}
-            className={`flex min-h-[38px] items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-bold transition ${
+            className={`hidden lg:flex min-h-[38px] items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-bold transition ${
               isRecordingMode
                 ? 'bg-brick text-cream border border-brick shadow-sm animate-pulse'
                 : 'bg-beige-sunken text-forest-muted border border-beige-hairline hover:text-forest-ink'

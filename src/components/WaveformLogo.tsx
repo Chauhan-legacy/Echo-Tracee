@@ -63,11 +63,11 @@ export const WaveformLogo: React.FC<WaveformLogoProps> = ({ isScanning = false }
         className="pointer-events-none absolute inset-0 h-full w-full opacity-60"
       />
       {/* Brand Title */}
-      <div className="relative z-10 flex items-center gap-2">
-        <span className="font-mono text-2xl font-black tracking-widest text-cyan drop-shadow-[0_0_12px_rgba(0,240,255,0.4)]">
+      <div className="relative z-10 flex items-center gap-1.5 sm:gap-2">
+        <span className="font-mono text-lg sm:text-2xl font-black tracking-wide sm:tracking-widest text-cyan drop-shadow-[0_0_12px_rgba(0,240,255,0.4)]">
           ECHO<span className="text-[#FF3366]">//</span>TRACE
         </span>
-        <span className="rounded border border-cyan/40 bg-cyan/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-cyan uppercase tracking-wider">
+        <span className="hidden sm:inline rounded border border-cyan/40 bg-cyan/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-cyan uppercase tracking-wider">
           v1.0
         </span>
       </div>

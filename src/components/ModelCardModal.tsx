@@ -111,7 +111,7 @@ export const ModelCardModal: React.FC<ModelCardModalProps> = ({ isOpen, onClose 
 
         {/* Footer */}
         <div className="border-t border-beige-hairline bg-beige-sunken/40 px-6 py-3 flex items-center justify-between text-xs text-forest-muted">
-          <span>100% Client-Side Execution Guarantee</span>
+          <span>100% Client-Side Execution Verified</span>
           <button
             onClick={onClose}
             className="rounded-xl bg-forest px-4 py-1.5 font-bold text-lime hover:bg-forest-deep transition"

@@ -94,7 +94,7 @@ export const AttackersViewCard: React.FC<AttackersViewCardProps> = ({ findings }
   }
 
   // Always protected
-  protectedItems.push('Zero-Knowledge Guarantee: Raw file never sent to any server or cloud API');
+  protectedItems.push('Client-Side Isolation: Raw file never sent to any server or cloud API');
 
   return (
     <div className="bg-[#0B281B] text-[#FAF5EB] rounded-xl p-5 border border-[#174D35] shadow-lg space-y-5">
