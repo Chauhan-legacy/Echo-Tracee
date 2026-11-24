@@ -36,7 +36,12 @@
   }
 
   /* Headlines: Fraunces, bold, text-wrap: balance */
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: 'Fraunces', Georgia, serif;
     font-weight: 700;
     color: #10291D;
@@ -55,13 +60,16 @@
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: #E8DCC3;
 }
+
 ::-webkit-scrollbar-thumb {
   background: #C9BB9A;
   border-radius: 3px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: #174D35;
 }
