@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Upload, Sparkles, FileVideo, Download, AlertCircle, ShieldCheck, CheckCircle2, Cpu, Wrench, Search } from 'lucide-react';
+import { Upload, Sparkles, FileVideo, Download, AlertCircle, ShieldCheck, CheckCircle2, Cpu, Wrench, Search, Mic } from 'lucide-react';
 import { ScanResult } from '../types';
 import { APP_COPY } from '../constants/copy';
 import { MiniLiveSpectrogram } from './MiniLiveSpectrogram';
@@ -12,6 +12,7 @@ interface ScanConsoleProps {
   scanResult: ScanResult | null;
   onExportResultsJson: () => void;
   onOpenNetworkAudit: () => void;
+  onOpenLiveRoomScan?: () => void;
   errorMessage?: string | null;
 }
 
@@ -22,6 +23,7 @@ export const ScanConsole: React.FC<ScanConsoleProps> = ({
   scanResult,
   onExportResultsJson,
   onOpenNetworkAudit,
+  onOpenLiveRoomScan,
   errorMessage,
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -74,22 +76,22 @@ export const ScanConsole: React.FC<ScanConsoleProps> = ({
               100% client-side privacy X-ray for videos and voice notes. Real mathematical signal processing runs directly on your device with zero data upload.
             </p>
 
-            {/* The Two Action Buttons */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            {/* The Action Buttons (Incident 001, Own File, Live Room Scan) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
               {/* Primary: Big Lime CTA with Forest Text */}
               <button
                 onClick={onLoadIncident001}
                 disabled={isScanning}
-                className="group flex flex-col items-start justify-center rounded-2xl bg-lime p-5 text-left transition hover:bg-lime-bright active:scale-[0.98] shadow-elevated border-2 border-lime min-h-[96px]"
+                className="group flex flex-col items-start justify-center rounded-2xl bg-lime p-4 text-left transition hover:bg-lime-bright active:scale-[0.98] shadow-elevated border-2 border-lime min-h-[90px]"
               >
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-5 w-5 text-forest" />
-                  <span className="font-display text-lg font-bold text-forest">
+                  <span className="font-display text-base font-bold text-forest">
                     Load INCIDENT-001
                   </span>
                 </div>
                 <span className="mt-1 text-xs text-forest/80 font-medium">
-                  Inspect the 15-second hostel reel
+                  15-second hostel reel
                 </span>
               </button>
 
@@ -97,18 +99,37 @@ export const ScanConsole: React.FC<ScanConsoleProps> = ({
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isScanning}
-                className="group flex flex-col items-start justify-center rounded-2xl border-2 border-beige-hairline bg-beige-sunken/60 p-5 text-left transition hover:border-forest hover:bg-beige-sunken active:scale-[0.98] min-h-[96px]"
+                className="group flex flex-col items-start justify-center rounded-2xl border-2 border-beige-hairline bg-beige-sunken/60 p-4 text-left transition hover:border-forest hover:bg-beige-sunken active:scale-[0.98] min-h-[90px]"
               >
                 <div className="flex items-center gap-2">
                   <Upload className="h-5 w-5 text-forest-muted group-hover:text-forest" />
-                  <span className="font-display text-lg font-bold text-forest-ink">
-                    Scan My Own File
+                  <span className="font-display text-base font-bold text-forest-ink">
+                    Scan My File
                   </span>
                 </div>
-                <span className="mt-1 text-xs text-forest-muted font-mono">
-                  MP4, MOV, WebM, WAV, MP3, M4A, JPG
+                <span className="mt-1 text-xs text-forest-muted font-mono truncate max-w-full">
+                  MP4, MOV, WAV, MP3, JPG
                 </span>
               </button>
+
+              {/* Tertiary: Scan Room Now (Live Mic) */}
+              {onOpenLiveRoomScan && (
+                <button
+                  onClick={onOpenLiveRoomScan}
+                  disabled={isScanning}
+                  className="group flex flex-col items-start justify-center rounded-2xl border-2 border-[#174D35] bg-[#174D35] p-4 text-left transition hover:bg-[#0B281B] active:scale-[0.98] min-h-[90px] shadow-sm"
+                >
+                  <div className="flex items-center gap-2">
+                    <Mic className="h-5 w-5 text-[#8BCF55]" />
+                    <span className="font-display text-base font-bold text-[#F3EBD8]">
+                      Scan Room Now
+                    </span>
+                  </div>
+                  <span className="mt-1 text-xs text-[#8BCF55] font-mono">
+                    10s live mic capture
+                  </span>
+                </button>
+              )}
             </div>
 
             <input

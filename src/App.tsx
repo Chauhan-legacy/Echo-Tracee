@@ -20,6 +20,12 @@ import { CommandPalette } from './components/CommandPalette';
 import { ModelCardModal } from './components/ModelCardModal';
 import { VerifyReceiptPage } from './components/VerifyReceiptPage';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { HearToneCard } from './components/HearToneCard';
+import { LiveRoomScanModal } from './components/LiveRoomScanModal';
+import { AttackersViewCard } from './components/AttackersViewCard';
+import { BeforeYouPostChecklist } from './components/BeforeYouPostChecklist';
+import { BeaconBitStrip } from './components/BeaconBitStrip';
+import { IngestedMedia, ingestUserFile } from './utils/fileIngest';
 
 import { ScanResult, Finding, FixReport, VisualFindingBox } from './types';
 import { generateIncident001 } from './demo/incident001';
@@ -31,7 +37,6 @@ import { calculateLeakScore } from './dsp/scoring';
 import { analyzeVideoFrames } from './analyzers/frames';
 import { analyzeSpokenSecrets } from './analyzers/speech';
 import { classifySoundScene } from './analyzers/scene';
-import { ingestUserFile } from './utils/fileIngest';
 import { initNetworkAudit } from './utils/networkAudit';
 
 export const App: React.FC = () => {
@@ -49,6 +54,18 @@ export const App: React.FC = () => {
   const [isTourActive, setIsTourActive] = useState(false);
   const [isRecordingMode, setIsRecordingMode] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isLiveRoomScanOpen, setIsLiveRoomScanOpen] = useState(false);
+
+  // Plain vs Technical toggle (F4)
+  const [viewMode, setViewMode] = useState<'plain' | 'technical'>(() => {
+    return (localStorage.getItem('echotrace_view_mode') as 'plain' | 'technical') || 'plain';
+  });
+
+  const toggleViewMode = () => {
+    const next = viewMode === 'plain' ? 'technical' : 'plain';
+    setViewMode(next);
+    localStorage.setItem('echotrace_view_mode', next);
+  };
 
   // Brushing and Linking state: currently hovered or selected finding
   const [hoveredFindingId, setHoveredFindingId] = useState<string | null>(null);
@@ -248,8 +265,8 @@ export const App: React.FC = () => {
     }
   }, []);
 
-  // Robust User File Ingestion
-  const handleUploadFile = useCallback(async (file: File) => {
+  // Core Ingested Media Processor (used by both file upload and live mic scan)
+  const processIngestedMedia = useCallback(async (media: IngestedMedia) => {
     setIsScanning(true);
     setFixReport(null);
     setCleanAudioData(null);
@@ -258,8 +275,6 @@ export const App: React.FC = () => {
     const startPerf = performance.now();
 
     try {
-      const media = await ingestUserFile(file);
-
       if (media.statusMessage) {
         setErrorMessage(media.statusMessage);
       }
@@ -312,7 +327,7 @@ export const App: React.FC = () => {
       const elapsedMs = Math.round(performance.now() - startPerf);
 
       const result: ScanResult = {
-        sourceName: file.name,
+        sourceName: media.sourceName,
         duration: media.duration,
         sha256: media.sha256,
         findings: allFindings,
@@ -338,6 +353,19 @@ export const App: React.FC = () => {
       setIsScanning(false);
     }
   }, []);
+
+  // Robust User File Ingestion
+  const handleUploadFile = useCallback(async (file: File) => {
+    setIsScanning(true);
+    setErrorMessage(null);
+    try {
+      const media = await ingestUserFile(file);
+      await processIngestedMedia(media);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Could not parse file. Check format and try again.');
+      setIsScanning(false);
+    }
+  }, [processIngestedMedia]);
 
   // Export results.json
   const handleExportResultsJson = () => {
@@ -435,6 +463,12 @@ export const App: React.FC = () => {
     return list;
   }, [scanResult]);
 
+  // Ultrasonic beacon finding if detected
+  const ultrasonicBeaconFinding = useMemo(() => {
+    if (!scanResult) return null;
+    return scanResult.findings.find(f => f.category === 'ultrasonic' && f.severity === 'critical') || null;
+  }, [scanResult]);
+
   // Findings sorted by severity: Critical first, then Warning, then Info
   const sortedFindings = useMemo(() => {
     if (!scanResult) return [];
@@ -483,6 +517,9 @@ export const App: React.FC = () => {
         isRecordingMode={isRecordingMode}
         onToggleRecordingMode={handleToggleRecordingMode}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+        viewMode={viewMode}
+        onToggleViewMode={toggleViewMode}
+        onOpenLiveRoomScan={() => setIsLiveRoomScanOpen(true)}
       />
 
       {/* Main Container with Left Icon Rail on Desktop */}
@@ -505,6 +542,7 @@ export const App: React.FC = () => {
                   scanResult={scanResult}
                   onExportResultsJson={handleExportResultsJson}
                   onOpenNetworkAudit={() => setIsNetworkAuditOpen(true)}
+                  onOpenLiveRoomScan={() => setIsLiveRoomScanOpen(true)}
                   errorMessage={errorMessage}
                 />
               </ErrorBoundary>
@@ -515,7 +553,7 @@ export const App: React.FC = () => {
                   {/* Left 8 columns on Desktop */}
                   <div className="contents lg:block lg:col-span-8 lg:space-y-8">
                     {/* Item 4 on Phone: Spectrogram */}
-                    <div className="order-4 lg:order-none space-y-2">
+                    <div className="order-4 lg:order-none space-y-4">
                       <ErrorBoundary fallbackTitle="Could not render Spectrogram">
                         <SpectrogramViewer
                           channelData={audioChannelData}
@@ -528,6 +566,28 @@ export const App: React.FC = () => {
                           onHoverFinding={setHoveredFindingId}
                         />
                       </ErrorBoundary>
+
+                      {/* F1: Hear the Hidden Tone & F5: Beacon Bit Strip */}
+                      {ultrasonicBeaconFinding && audioChannelData && (
+                        <div className="space-y-4">
+                          <ErrorBoundary fallbackTitle="Could not load Tone Player">
+                            <HearToneCard
+                              samples={audioChannelData}
+                              sampleRate={scanResult.audioMetrics.sampleRate}
+                              beaconFreqHz={Number(ultrasonicBeaconFinding.details?.frequencyHz) || 19400}
+                              snrDb={Number(ultrasonicBeaconFinding.details?.snrDb) || 15}
+                              bitPattern={String(ultrasonicBeaconFinding.details?.bitString || '101011001101')}
+                            />
+                          </ErrorBoundary>
+                          <ErrorBoundary fallbackTitle="Could not load Bit Strip">
+                            <BeaconBitStrip
+                              bitString={String(ultrasonicBeaconFinding.details?.bitString || '101011001101')}
+                              baudRate={Number(ultrasonicBeaconFinding.details?.keyingRateBaud) || 12.5}
+                              freqHz={Number(ultrasonicBeaconFinding.details?.frequencyHz) || 19400}
+                            />
+                          </ErrorBoundary>
+                        </div>
+                      )}
                     </div>
 
                     {/* Synchronized Timeline Strip */}
@@ -675,6 +735,13 @@ export const App: React.FC = () => {
                         <WorldMapCard metadata={scanResult.metadata} isFixed={fixReport !== null} />
                       </ErrorBoundary>
                     </div>
+
+                    {/* F3: Attacker's View Intelligence Card */}
+                    <div className="order-8 lg:order-none">
+                      <ErrorBoundary fallbackTitle="Could not load Attacker's View">
+                        <AttackersViewCard findings={scanResult.findings} />
+                      </ErrorBoundary>
+                    </div>
                   </div>
 
                   {/* Right 4 columns on Desktop: Score Hero, Findings List, Docked Inspector */}
@@ -687,6 +754,17 @@ export const App: React.FC = () => {
                           findings={scanResult.findings}
                           isFixed={fixReport !== null}
                           onFixAll={() => setActiveTab('fix')}
+                        />
+                      </ErrorBoundary>
+                    </div>
+
+                    {/* F6: Before You Post Dynamic Checklist */}
+                    <div className="order-2 lg:order-none">
+                      <ErrorBoundary fallbackTitle="Could not load Checklist">
+                        <BeforeYouPostChecklist
+                          findings={scanResult.findings}
+                          fixReport={fixReport}
+                          onOpenFixer={() => setActiveTab('fix')}
                         />
                       </ErrorBoundary>
                     </div>
@@ -712,6 +790,7 @@ export const App: React.FC = () => {
                               onMouseEnter={() => setHoveredFindingId(f.id)}
                               onMouseLeave={() => setHoveredFindingId(null)}
                               onSelect={() => setSelectedFindingId(f.id)}
+                              viewMode={viewMode}
                             />
                           </div>
                         ))}
@@ -954,6 +1033,13 @@ export const App: React.FC = () => {
         onTriggerShare={() => {
           setIsShareModalOpen(true);
         }}
+      />
+
+      {/* Live Room Scan Modal (F2) */}
+      <LiveRoomScanModal
+        isOpen={isLiveRoomScanOpen}
+        onClose={() => setIsLiveRoomScanOpen(false)}
+        onScanComplete={processIngestedMedia}
       />
 
       {/* Mobile 4-Step Bottom Tab Bar */}

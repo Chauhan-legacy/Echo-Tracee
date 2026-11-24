@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, ShieldCheck, Video, Command, Search, Sparkles, HardDrive } from 'lucide-react';
+import { Shield, ShieldCheck, Video, Command, Search, Sparkles, HardDrive, Mic, Sliders } from 'lucide-react';
 import { WaveformLogo } from './WaveformLogo';
 import { ScanResult } from '../types';
 
@@ -11,6 +11,9 @@ interface DesktopTopBarProps {
   isRecordingMode: boolean;
   onToggleRecordingMode: () => void;
   onOpenCommandPalette: () => void;
+  viewMode?: 'plain' | 'technical';
+  onToggleViewMode?: () => void;
+  onOpenLiveRoomScan?: () => void;
 }
 
 export const DesktopTopBar: React.FC<DesktopTopBarProps> = ({
@@ -21,6 +24,9 @@ export const DesktopTopBar: React.FC<DesktopTopBarProps> = ({
   isRecordingMode,
   onToggleRecordingMode,
   onOpenCommandPalette,
+  viewMode = 'plain',
+  onToggleViewMode,
+  onOpenLiveRoomScan,
 }) => {
   const duration = scanResult ? `${scanResult.duration.toFixed(1)}s` : '15.0s';
   const shaPrefix = scanResult ? scanResult.sha256.slice(0, 8) : 'e3b0c442';
@@ -53,8 +59,34 @@ export const DesktopTopBar: React.FC<DesktopTopBarProps> = ({
           </div>
         </div>
 
-        {/* Right Controls: Command Palette, Privacy Badge, Rec Mode */}
+        {/* Right Controls: View Mode, Live Mic, Command Palette, Privacy Badge */}
         <div className="flex items-center gap-2">
+          {/* Plain / Technical Switch (F4) */}
+          {onToggleViewMode && (
+            <button
+              onClick={onToggleViewMode}
+              className="flex items-center gap-1 rounded-xl border border-beige-hairline bg-cream px-2.5 py-1 text-xs font-bold text-forest hover:bg-beige-sunken transition shadow-sm"
+              title="Toggle between Plain Language and Technical Forensic metrics"
+            >
+              <Sliders className="h-3.5 w-3.5 text-forest" />
+              <span className="uppercase text-[11px] font-mono">
+                {viewMode === 'plain' ? 'Mode: Plain' : 'Mode: Tech'}
+              </span>
+            </button>
+          )}
+
+          {/* Live Mic Scan Trigger (F2) */}
+          {onOpenLiveRoomScan && (
+            <button
+              onClick={onOpenLiveRoomScan}
+              className="flex items-center gap-1.5 rounded-xl border border-forest/30 bg-[#174D35] px-3 py-1 text-xs font-bold text-[#8BCF55] hover:bg-[#0B281B] transition shadow-sm"
+              title="Record 10 seconds of raw microphone audio to check your room"
+            >
+              <Mic className="h-3.5 w-3.5 text-[#8BCF55]" />
+              <span className="hidden md:inline">Scan Room</span>
+            </button>
+          )}
+
           {/* Command Palette Trigger */}
           <button
             onClick={onOpenCommandPalette}

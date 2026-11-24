@@ -17,6 +17,7 @@ interface FindingCardProps {
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
   onSelect?: () => void;
+  viewMode?: 'plain' | 'technical';
 }
 
 const SEVERITY_CONFIG: Record<
@@ -65,11 +66,13 @@ export const FindingCard: React.FC<FindingCardProps> = ({
   onMouseEnter,
   onMouseLeave,
   onSelect,
+  viewMode = 'plain',
 }) => {
   const [showHowWeKnow, setShowHowWeKnow] = useState(false);
   const cfg = SEVERITY_CONFIG[finding.severity];
   const Icon = cfg.icon;
   const methodTag = getMethodTag(finding.category, finding.method);
+  const isTechMode = viewMode === 'technical';
 
   return (
     <div
@@ -151,18 +154,19 @@ export const FindingCard: React.FC<FindingCardProps> = ({
               }}
               className="flex items-center gap-1.5 text-xs font-semibold text-forest hover:text-forest-ink transition"
             >
-              <span>How we know (parameters & math)</span>
-              {showHowWeKnow ? (
+              <span>{isTechMode ? 'Forensic Mathematical Breakdown' : 'How we know (parameters & math)'}</span>
+              {showHowWeKnow || isTechMode ? (
                 <ChevronUp className="h-3.5 w-3.5" />
               ) : (
                 <ChevronDown className="h-3.5 w-3.5" />
               )}
             </button>
 
-            {showHowWeKnow && (
+            {(showHowWeKnow || isTechMode) && (
               <div className="mt-2 rounded-xl bg-beige-sunken/70 border border-beige-hairline p-3 font-mono text-xs space-y-1.5">
-                <div className="text-[11px] font-bold text-forest-muted uppercase tracking-wider mb-1">
-                  Extracted Signal Parameters
+                <div className="flex items-center justify-between text-[11px] font-bold text-forest-muted uppercase tracking-wider mb-1">
+                  <span>Extracted Signal Parameters</span>
+                  {isTechMode && <span className="text-[#174D35] bg-[#8BCF55]/20 px-1.5 py-0.5 rounded text-[10px]">Technical View</span>}
                 </div>
                 {Object.entries(finding.details).map(([key, val]) => (
                   <div key={key} className="flex justify-between py-0.5 border-b border-beige-hairline/50 last:border-0">
