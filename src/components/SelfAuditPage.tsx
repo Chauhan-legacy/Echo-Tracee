@@ -128,11 +128,11 @@ export const SelfAuditPage: React.FC = () => {
                     </span>
                   </div>
 
-                  <p className="text-sm font-semibold text-forest-ink leading-relaxed">
+                  <p className="text-sm font-bold text-forest-ink leading-relaxed">
                     {g.summary}
                   </p>
 
-                  <p className="text-xs font-mono font-medium text-forest">
+                  <p className="text-xs font-mono font-bold text-forest">
                     {g.details}
                   </p>
                 </div>
@@ -142,14 +142,14 @@ export const SelfAuditPage: React.FC = () => {
         </div>
 
         {/* Known Limitations Block (Honesty Rule requirement) */}
-        <div className="rounded-2xl bg-beige-sunken/60 p-5 sm:p-6 border-2 border-beige-hairline space-y-3">
+        <div className="rounded-2xl bg-cream p-5 sm:p-6 border-2 border-beige-hairline space-y-3 shadow-sm">
           <div className="flex items-center gap-2 text-sm font-bold text-forest-ink">
-            <Info className="h-5 w-5 text-forest" />
-            <h4 className="font-display text-base font-bold text-forest-ink">
+            <Info className="h-5 w-5 text-forest shrink-0" />
+            <h4 className="font-display text-base font-black text-forest-ink">
               Honest Technical Limitations (5 Lines Max)
             </h4>
           </div>
-          <ul className="list-disc list-inside space-y-1.5 text-sm font-semibold text-forest-ink/90 leading-relaxed">
+          <ul className="list-disc list-inside space-y-2 text-sm font-bold text-forest-ink leading-relaxed">
             <li>Mains hum grid analysis narrows to continental 50/60 Hz pools; physical substation or city identification is impossible from hum alone.</li>
             <li>Acoustic reverberation (RT60) estimates room reverberance class, never an exact laser-scanned 3D volume.</li>
             <li>Camera sensor PRNU fingerprinting and AI deepfake synthesis cannot be reliably proven client-side in a browser sandbox.</li>

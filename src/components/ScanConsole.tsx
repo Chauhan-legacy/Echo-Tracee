@@ -16,6 +16,7 @@ interface ScanConsoleProps {
   onLoadIncident001: () => void;
   onLoadIncident002?: () => void;
   onLoadIncident003?: () => void;
+  onLoadIncident004?: () => void;
   onUploadFile: (file: File) => void;
   isScanning: boolean;
   scanResult: ScanResult | null;
@@ -30,6 +31,7 @@ export const ScanConsole: React.FC<ScanConsoleProps> = ({
   onLoadIncident001,
   onLoadIncident002,
   onLoadIncident003,
+  onLoadIncident004,
   onUploadFile,
   isScanning,
   scanResult,
@@ -361,7 +363,7 @@ export const ScanConsole: React.FC<ScanConsoleProps> = ({
               <span className="font-mono text-xs text-forest-muted font-bold">Select case to analyze</span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5">
               {/* Case 1 */}
               <div
                 onClick={onLoadIncident001}
@@ -430,10 +432,33 @@ export const ScanConsole: React.FC<ScanConsoleProps> = ({
                   <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
+
+              {/* Case 4: SkyLeak Aircraft Doppler Geolocation (Colsto Inspo) */}
+              <div
+                onClick={onLoadIncident004 || onLoadIncident001}
+                className="group cursor-pointer rounded-2xl border-2 border-beige-hairline bg-beige-card p-4 transition hover:border-forest hover:shadow-elevated"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-mono text-xs font-bold text-forest uppercase">CASE #4</span>
+                  <span className="rounded bg-brick/15 px-2 py-0.5 font-mono text-[10px] font-bold text-brick">
+                    SKYLEAK OSINT
+                  </span>
+                </div>
+                <h4 className="font-display text-sm font-bold text-forest-ink group-hover:text-forest transition">
+                  INCIDENT-004: Flight Corridor Reel (15s)
+                </h4>
+                <p className="text-xs text-forest-muted mt-1 leading-relaxed">
+                  175 Hz turbofan Doppler S-curve, 775 km/h flyover, Frankfurt airway corridor, ±95m pinpoint.
+                </p>
+                <div className="mt-3 pt-3 border-t border-beige-hairline flex items-center justify-between text-xs font-bold text-forest">
+                  <span>Load & Analyze</span>
+                  <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* 4-Quadrant Live Signal Defense Telemetry Matrix */}
+          {/* 5-Domain Live Signal Defense Telemetry Matrix */}
           <div className="rounded-3xl border border-beige-hairline bg-beige-card p-5 sm:p-6 lg:p-7 shadow-panel space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-beige-hairline pb-3">
               <div className="flex items-center gap-2">
@@ -454,12 +479,12 @@ export const ScanConsole: React.FC<ScanConsoleProps> = ({
                 )}
                 <div className="hidden sm:flex items-center gap-1.5 font-mono text-xs text-forest">
                   <span className="h-2 w-2 rounded-full bg-lime animate-pulse" />
-                  <span>4 ENGINES ONLINE</span>
+                  <span>5 ENGINES ONLINE</span>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3.5">
               {/* Domain 1: ENF Acoustic Grid */}
               <div className="rounded-2xl border border-beige-hairline bg-cream p-4 space-y-2">
                 <div className="flex items-center justify-between">
@@ -537,6 +562,26 @@ export const ScanConsole: React.FC<ScanConsoleProps> = ({
                 <div className="pt-2 font-mono text-[11px] text-forest flex items-center justify-between border-t border-beige-hairline">
                   <span>Hardware Vault:</span>
                   <span className="font-bold">Apple SE / TPM 2.0</span>
+                </div>
+              </div>
+
+              {/* Domain 5: Acoustic ADS-B Radar (SkyLeak Doppler Geolocation) */}
+              <div className="rounded-2xl border border-beige-hairline bg-cream p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-xs font-bold text-forest">05 // ADS-B SKYLEAK</span>
+                  <span className="rounded bg-brick/15 px-1.5 py-0.5 font-mono text-[10px] text-brick font-bold">
+                    70-360 Hz
+                  </span>
+                </div>
+                <h4 className="font-display text-sm font-bold text-forest-ink">
+                  Acoustic Flight Radar
+                </h4>
+                <p className="text-xs text-forest-muted">
+                  Turbofan Doppler S-curve kinematics. Correlates flight paths with public ADS-B transponder data to isolate coordinates.
+                </p>
+                <div className="pt-2 font-mono text-[11px] text-forest flex items-center justify-between border-t border-beige-hairline">
+                  <span>Pinpoint Accuracy:</span>
+                  <span className="font-bold">±95 meters</span>
                 </div>
               </div>
             </div>

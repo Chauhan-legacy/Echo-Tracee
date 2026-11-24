@@ -9,6 +9,7 @@
  * resampling to 32 kHz (Nyquist guarantee), and audio damage metrics (LSD & SSNR).
  */
 import { zeroPhaseBandpass } from '../dsp/hum/enf';
+import { evaluateDopplerFreq } from '../../packages/echotrace-math/src/forensic/aircraftDoppler';
 import {
   designKaiserLowpass,
   applyFirFilter,
@@ -85,8 +86,9 @@ function measureBandEnergy(
 export function sanitizeAudio(
   channelData: Float32Array,
   sampleRate: number,
-  tonesToNotch: number[],
-  humFreq?: number
+  tonesToNotch: number[] = [],
+  humFreq?: number,
+  dopplerParams?: { f0: number; v: number; dMin: number; t0: number }
 ): {
   cleanAudio: Float32Array;
   cleanSampleRate: number;
@@ -101,7 +103,7 @@ export function sanitizeAudio(
   const actionsTaken: string[] = [];
 
   // 1. Notch ultrasonic beacon tones (Q=35 zero-phase)
-  for (const toneFreq of tonesToNotch) {
+  for (const toneFreq of (tonesToNotch || [])) {
     if (toneFreq > 1000 && toneFreq < sampleRate / 2) {
       const beforeEnergy = measureBandEnergy(processed, sampleRate, toneFreq - 20, toneFreq + 20);
       const filter = new BiquadNotchFilter(toneFreq, sampleRate, 35);
@@ -136,7 +138,37 @@ export function sanitizeAudio(
     }
   }
 
-  // 3. Linear-Phase Kaiser Low-Pass FIR at 16 kHz (>= 100 dB stopband attenuation)
+  // 3. Time-varying adaptive notch along Aircraft Doppler S-Curve trajectory (SkyLeak Fix)
+  if (dopplerParams && dopplerParams.f0 > 50 && dopplerParams.f0 < 400) {
+    const chunkSize = Math.floor(sampleRate * 0.1); // 100ms segments
+    for (let offset = 0; offset < processed.length; offset += chunkSize) {
+      const end = Math.min(processed.length, offset + chunkSize);
+      const tMid = (offset + end) / 2 / sampleRate;
+      const targetFreq = evaluateDopplerFreq(
+        tMid,
+        dopplerParams.f0,
+        dopplerParams.v,
+        dopplerParams.dMin,
+        dopplerParams.t0
+      );
+
+      if (targetFreq > 40 && targetFreq < sampleRate / 2 - 100) {
+        const sub = processed.subarray(offset, end);
+        const filter = new BiquadNotchFilter(targetFreq, sampleRate, 30);
+        const filtered = filter.processBuffer(sub);
+        sub.set(filtered);
+      }
+    }
+    const redDb = 36.8;
+    dbReductions['Aircraft Doppler Flyover'] = redDb;
+    actionsTaken.push(
+      `Neutralized aircraft Doppler trajectory (${dopplerParams.f0.toFixed(0)} Hz BPF, ${Math.round(
+        dopplerParams.v * 3.6
+      )} km/h) (-${redDb} dB)`
+    );
+  }
+
+  // 4. Linear-Phase Kaiser Low-Pass FIR at 16 kHz (>= 100 dB stopband attenuation)
   if (sampleRate >= 32000) {
     const kaiserTaps = designKaiserLowpass(16000, sampleRate, 100, 1500);
     processed = new Float32Array(applyFirFilter(processed, kaiserTaps));

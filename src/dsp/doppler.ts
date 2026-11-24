@@ -4,6 +4,7 @@
  */
 import { FFT, hannWindow } from './fft';
 import { Finding } from '../types';
+import { analyzeAircraftDoppler, AircraftRadarResult } from './aircraftRadar';
 
 export interface DopplerResult {
   detected: boolean;
@@ -13,12 +14,13 @@ export interface DopplerResult {
   centerFrequencyHz?: number;
   confidence: number;
   findings: Finding[];
+  aircraftRadar?: AircraftRadarResult;
 }
 
 /**
- * P3: Doppler Speed Estimator
- * Detects spectral ridge trajectory of passing vehicles / sirens and fits
- * kinematic Doppler curve via least squares.
+ * P3: Doppler Kinematic Estimator
+ * Detects spectral ridge trajectory of passing vehicles / sirens as well as
+ * high-altitude commercial aircraft turbofan Doppler S-curves (Colsto / SkyLeak).
  */
 export function estimateDoppler(
   channelData: Float32Array,
@@ -30,7 +32,13 @@ export function estimateDoppler(
     return { detected: false, confidence: 0, findings };
   }
 
-  // Spectrogram slice computation (focus on 400 - 1500 Hz siren/engine range)
+  // 1. High-Priority SkyLeak Aircraft Doppler Check (Colsto Geolocation Vulnerability)
+  const aircraftRes = analyzeAircraftDoppler(channelData, sampleRate);
+  if (aircraftRes.detected && aircraftRes.findings.length > 0) {
+    findings.push(...aircraftRes.findings);
+  }
+
+  // 2. Spectrogram slice computation for ground vehicles (400 - 1500 Hz siren/engine range)
   const fftSize = 4096;
   const fft = new FFT(fftSize);
   const win = hannWindow(fftSize);
@@ -63,14 +71,13 @@ export function estimateDoppler(
       }
     }
 
-    // Only register significant energy peaks
     if (maxVal > 0.05) {
       ridgeTimes.push((offset + fftSize / 2) / sampleRate);
       ridgeFreqs.push(peakBin * binWidth);
     }
   }
 
-  // Check for monotonic descent characteristic of Doppler S-curve
+  // Check for monotonic descent characteristic of ground vehicle Doppler S-curve
   if (ridgeFreqs.length >= 8) {
     const firstThird = ridgeFreqs.slice(0, Math.floor(ridgeFreqs.length / 3));
     const lastThird = ridgeFreqs.slice(Math.floor((2 * ridgeFreqs.length) / 3));
@@ -88,7 +95,7 @@ export function estimateDoppler(
       const speedMph = Number((speedKmh * 0.621371).toFixed(1));
 
       // Closest approach estimation from inflection slope
-      const maxSlopeHzPerSec = deltaF / 1.5; // estimated transition duration
+      const maxSlopeHzPerSec = deltaF / 1.5;
       const closestMeters = Number(Math.max(2, Math.min(25, (v * v * f0) / (c * maxSlopeHzPerSec))).toFixed(1));
 
       findings.push({
@@ -110,14 +117,28 @@ export function estimateDoppler(
 
       return {
         detected: true,
-        speedKmh,
-        speedMph,
-        closestApproachMeters: closestMeters,
-        centerFrequencyHz: Number(f0.toFixed(1)),
-        confidence: 0.82,
+        speedKmh: aircraftRes.model ? aircraftRes.model.speedKmh : speedKmh,
+        speedMph: aircraftRes.model ? Number((aircraftRes.model.speedKmh * 0.621371).toFixed(1)) : speedMph,
+        closestApproachMeters: aircraftRes.model ? aircraftRes.model.dMinMeters : closestMeters,
+        centerFrequencyHz: aircraftRes.model ? aircraftRes.model.f0 : Number(f0.toFixed(1)),
+        confidence: Math.max(0.82, aircraftRes.model?.rSquared || 0),
         findings,
+        aircraftRadar: aircraftRes.detected ? aircraftRes : undefined,
       };
     }
+  }
+
+  if (aircraftRes.detected && aircraftRes.model) {
+    return {
+      detected: true,
+      speedKmh: aircraftRes.model.speedKmh,
+      speedMph: Number((aircraftRes.model.speedKmh * 0.621371).toFixed(1)),
+      closestApproachMeters: aircraftRes.model.dMinMeters,
+      centerFrequencyHz: aircraftRes.model.f0,
+      confidence: aircraftRes.model.rSquared,
+      findings,
+      aircraftRadar: aircraftRes,
+    };
   }
 
   return { detected: false, confidence: 0, findings };

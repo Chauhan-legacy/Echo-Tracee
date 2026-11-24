@@ -314,6 +314,17 @@ export const FixerViewer: React.FC<FixerViewerProps> = ({
 
     const humFreq = detectedHum && detectedHum > 40 && detectedHum < 70 ? detectedHum : undefined;
 
+    // Aircraft Doppler S-Curve Parameters (SkyLeak Geolocation Defense)
+    const dopplerFinding = scanResult.findings.find(f => f.id === 'skyleak-aircraft-doppler');
+    const dopplerParams = dopplerFinding?.details?.bladePassFrequencyHz
+      ? {
+          f0: Number(dopplerFinding.details.bladePassFrequencyHz),
+          v: Number(dopplerFinding.details.speedKmh) / 3.6,
+          dMin: Number(dopplerFinding.details.closestApproachMeters),
+          t0: Number(dopplerFinding.details.inflectionTimeSec),
+        }
+      : undefined;
+
     setProgressStep('Applying Kaiser low-pass FIR (>= 100 dB stopband) & 32 kHz resampling...');
     await new Promise(r => setTimeout(r, 25));
 
@@ -324,7 +335,7 @@ export const FixerViewer: React.FC<FixerViewerProps> = ({
       actionsTaken,
       logSpectralDistanceDb,
       segmentalSnrDb,
-    } = sanitizeAudio(audioDataToUse, sampleRate, tonesToNotch, humFreq);
+    } = sanitizeAudio(audioDataToUse, sampleRate, tonesToNotch, humFreq, dopplerParams);
 
     let cleanAudio = rawCleanAudio;
 

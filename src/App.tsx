@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React, { useState, useEffect, useCallback, useRef, useMemo, Suspense, lazy } from 'react';
+import { CheckCircle2 } from 'lucide-react';
 import { DesktopTopBar } from './components/DesktopTopBar';
 import { LeftIconRail } from './components/LeftIconRail';
 import { BottomTabBar, ActiveTab } from './components/BottomTabBar';
@@ -18,11 +19,12 @@ import { AttackersViewCard } from './components/AttackersViewCard';
 import { BeforeYouPostChecklist } from './components/BeforeYouPostChecklist';
 import { BeaconBitStrip } from './components/BeaconBitStrip';
 import { FirstRunHints } from './components/FirstRunHints';
+import { SkyLeakRadarCard } from './components/SkyLeakRadarCard';
 import { IngestedMedia, ingestUserFile } from './utils/fileIngest';
 import { SITE_URL, APP_CONFIG } from './config';
 
 import { ScanResult, Finding, FixReport, VisualFindingBox } from './types';
-import { generateIncident001, generateIncident002, generateIncident003 } from './demo/incident001';
+import { generateIncident001, generateIncident002, generateIncident003, generateIncident004 } from './demo/incident001';
 import { analyzeHum } from './dsp/hum';
 import { analyzeUltrasonicTones } from './dsp/ultrasonic';
 import { analyzeRoomCharacter } from './dsp/reverb';
@@ -208,8 +210,8 @@ export const App: React.FC = () => {
     });
   }, []);
 
-  // Load and analyze INCIDENT-001 (The Hostel Reel)
-  const handleLoadIncident = useCallback(async (incidentId: '001' | '002' | '003' = '001') => {
+  // Load and analyze Incidents 001 - 004
+  const handleLoadIncident = useCallback(async (incidentId: '001' | '002' | '003' | '004' = '001') => {
     if (isScanning) return; // double-tap debounce
     setIsScanning(true);
     setFixReport(null);
@@ -223,10 +225,12 @@ export const App: React.FC = () => {
     const startPerf = performance.now();
 
     // 1. In-browser procedural generator
-    const demoData = incidentId === '002'
-      ? await generateIncident002()
+    const demoData = incidentId === '004'
+      ? await generateIncident004()
       : incidentId === '003'
       ? await generateIncident003()
+      : incidentId === '002'
+      ? await generateIncident002()
       : await generateIncident001();
 
     setVideoFrames(demoData.videoFrames);
@@ -287,6 +291,7 @@ export const App: React.FC = () => {
       '001': 'INCIDENT-001: The Hostel Reel [DEMO]',
       '002': 'INCIDENT-002: Coffee Shop Voice Note [DEMO]',
       '003': 'INCIDENT-003: Silent Office Video [DEMO]',
+      '004': 'INCIDENT-004: Flight Corridor Reel [DEMO]',
     };
 
     const result: ScanResult = {
@@ -320,6 +325,7 @@ export const App: React.FC = () => {
   const handleLoadIncident001 = useCallback(() => handleLoadIncident('001'), [handleLoadIncident]);
   const handleLoadIncident002 = useCallback(() => handleLoadIncident('002'), [handleLoadIncident]);
   const handleLoadIncident003 = useCallback(() => handleLoadIncident('003'), [handleLoadIncident]);
+  const handleLoadIncident004 = useCallback(() => handleLoadIncident('004'), [handleLoadIncident]);
 
   // Core Ingested Media Processor
   const processIngestedMedia = useCallback(async (media: IngestedMedia) => {
@@ -515,7 +521,25 @@ export const App: React.FC = () => {
       });
     }
 
+    // SkyLeak Aircraft Blade-Pass Doppler Ridge highlight
+    const aircraftFinding = scanResult.findings.find(f => f.id === 'skyleak-aircraft-doppler');
+    if (aircraftFinding?.details?.flightTelemetry) {
+      const tel = aircraftFinding.details.flightTelemetry as any;
+      list.push({
+        freq: tel.bladePassFreqHz,
+        label: `${tel.bladePassFreqHz.toFixed(1)} Hz Blade-Pass (${tel.callsign})`,
+        color: '#8BCF55',
+        findingId: aircraftFinding.id,
+      });
+    }
+
     return list;
+  }, [scanResult]);
+
+  // Aircraft Doppler Geolocation finding if detected (SkyLeak ADS-B)
+  const dopplerAircraftFinding = useMemo(() => {
+    if (!scanResult) return null;
+    return scanResult.findings.find(f => f.id === 'skyleak-aircraft-doppler') || null;
   }, [scanResult]);
 
   // Ultrasonic beacon finding if detected
@@ -634,6 +658,7 @@ export const App: React.FC = () => {
                   onLoadIncident001={handleLoadIncident001}
                   onLoadIncident002={handleLoadIncident002}
                   onLoadIncident003={handleLoadIncident003}
+                  onLoadIncident004={handleLoadIncident004}
                   onUploadFile={handleUploadFile}
                   isScanning={isScanning}
                   scanResult={scanResult}
@@ -682,6 +707,19 @@ export const App: React.FC = () => {
                               bitString={String(ultrasonicBeaconFinding.details?.bitString || '101011001101')}
                               baudRate={Number(ultrasonicBeaconFinding.details?.keyingRateBaud) || 12.5}
                               freqHz={Number(ultrasonicBeaconFinding.details?.frequencyHz) || 19400}
+                            />
+                          </ErrorBoundary>
+                        </div>
+                      )}
+
+                      {/* SkyLeak: Acoustic ADS-B Aircraft Radar & Doppler Geolocation Engine */}
+                      {dopplerAircraftFinding && (
+                        <div className="space-y-4">
+                          <ErrorBoundary fallbackTitle="Could not load Acoustic Flight Radar">
+                            <SkyLeakRadarCard
+                              finding={dopplerAircraftFinding}
+                              onFix={() => setActiveTab('fix')}
+                              isFixed={fixReport !== null}
                             />
                           </ErrorBoundary>
                         </div>
@@ -742,21 +780,56 @@ export const App: React.FC = () => {
                         </button>
                       </div>
 
-                      {/* Display Top 3 Cards */}
+                      {/* Display Top 3 Cards or Clean File Guarantee */}
                       <div className="space-y-3">
-                        {top3Findings.map((f: Finding) => (
-                          <FindingCard
-                            key={f.id}
-                            finding={f}
-                            onFix={() => setActiveTab('fix')}
-                            isFixed={fixReport !== null}
-                            isHovered={hoveredFindingId === f.id || selectedFindingId === f.id}
-                            onMouseEnter={() => setHoveredFindingId(f.id)}
-                            onMouseLeave={() => setHoveredFindingId(null)}
-                            onSelect={() => setSelectedFindingId(f.id)}
-                            viewMode={viewMode}
-                          />
-                        ))}
+                        {sortedFindings.length === 0 ? (
+                          <div className="rounded-2xl border-2 border-forest/30 bg-cream p-5 shadow-panel space-y-3">
+                            <div className="flex items-center gap-2.5">
+                              <span className="p-2 rounded-xl bg-forest text-lime">
+                                <CheckCircle2 className="h-5 w-5" />
+                              </span>
+                              <div>
+                                <h4 className="font-display text-base font-bold text-forest-ink">
+                                  Clean File — Zero Forensic Leaks
+                                </h4>
+                                <span className="font-mono text-xs font-bold text-forest">
+                                  All 7 forensic analysis engines ran
+                                </span>
+                              </div>
+                            </div>
+                            <p className="text-sm text-forest-ink font-semibold leading-relaxed">
+                              No hidden ultrasonic tracking beacons, continental power-grid hum, room reverberation leaks, aircraft Doppler corridors, or embedded container GPS coordinates were detected.
+                            </p>
+                            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-beige-hairline font-mono text-[11px] text-forest font-bold">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-lime font-black">✓</span> Mains Hum: None
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-lime font-black">✓</span> Beacons: None
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-lime font-black">✓</span> ADS-B Radar: Clear
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-lime font-black">✓</span> Metadata: Clean
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          top3Findings.map((f: Finding) => (
+                            <FindingCard
+                              key={f.id}
+                              finding={f}
+                              onFix={() => setActiveTab('fix')}
+                              isFixed={fixReport !== null}
+                              isHovered={hoveredFindingId === f.id || selectedFindingId === f.id}
+                              onMouseEnter={() => setHoveredFindingId(f.id)}
+                              onMouseLeave={() => setHoveredFindingId(null)}
+                              onSelect={() => setSelectedFindingId(f.id)}
+                              viewMode={viewMode}
+                            />
+                          ))
+                        )}
                       </div>
 
                       {sortedFindings.length > 3 && (

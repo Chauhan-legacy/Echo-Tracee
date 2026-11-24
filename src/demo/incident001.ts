@@ -479,3 +479,160 @@ export async function generateIncident003(): Promise<Incident001Data> {
     sha256,
   };
 }
+
+/**
+ * Procedurally generates INCIDENT-004: Flight Corridor Reel (SkyLeak Geolocation).
+ * Inspired by Colsto's acoustic flight tracking discovery (https://youtu.be/UytYrhYLOKI).
+ * 15 seconds @ 48 kHz.
+ * Contains:
+ * - Commercial turbofan aircraft flying overhead at 775 km/h (CPA ~1,950m at t=7.5s)
+ * - Exact Doppler frequency S-curve from ~280 Hz approaching down to ~70 Hz receding
+ * - Harmonic blade-pass energy at 2 * f(t)
+ * - Faint distant European 50.01 Hz grid hum
+ * - Outdoor suburban sky canvas frames
+ * - Frankfurt flight approach corridor coordinates
+ */
+export async function generateIncident004(): Promise<Incident001Data> {
+  const sampleRate = 48000;
+  const duration = 15.0;
+  const numSamples = Math.floor(sampleRate * duration);
+  const audio = new Float32Array(numSamples);
+
+  const f0 = 175.0;     // Blade-pass fundamental (Hz)
+  const v = 215.0;      // Speed: 215 m/s (~774 km/h)
+  const dMin = 1950.0;  // Slant range at CPA (m)
+  const t0 = 7.5;       // Time of closest approach (s)
+  const c = 343.0;      // Speed of sound (m/s)
+
+  let jetPhase = 0;
+  let humPhase = 0;
+
+  // Deterministic LCG for faint wind noise
+  let seed = 44556677;
+  const lcgRand = () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    return (seed / 4294967296) * 2 - 1;
+  };
+
+  for (let i = 0; i < numSamples; i++) {
+    const t = i / sampleRate;
+
+    // 1. Evaluate exact physical Doppler S-curve
+    const dt = t - t0;
+    const slant = Math.sqrt(dMin * dMin + v * v * dt * dt);
+    const vr = - (v * v * dt) / slant;
+    const dopplerFreq = f0 * (1.0 + vr / c);
+
+    jetPhase += (2 * Math.PI * dopplerFreq) / sampleRate;
+
+    // Acoustic sound propagation attenuation: inverse distance falloff
+    const distanceGain = Math.min(1.0, 2200 / slant);
+    const jetFund = 0.16 * distanceGain * Math.sin(jetPhase);
+    const jetHarmonic = 0.06 * distanceGain * Math.sin(2 * jetPhase);
+
+    // 2. Distant power line hum (50.01 Hz)
+    humPhase += (2 * Math.PI * 50.01) / sampleRate;
+    const hum = 0.03 * Math.sin(humPhase);
+
+    // 3. Outdoor atmospheric wind floor
+    const wind = 0.015 * lcgRand();
+
+    audio[i] = jetFund + jetHarmonic + hum + wind;
+  }
+
+  // Synthesize suburban sky video frames
+  const width = 640;
+  const height = 360;
+  const videoFrames: HTMLCanvasElement[] = [];
+
+  if (typeof document !== 'undefined') {
+    for (let frameIdx = 0; frameIdx < 10; frameIdx++) {
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        // Sunset sky gradient
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, height);
+        skyGrad.addColorStop(0, '#2D3A58');
+        skyGrad.addColorStop(0.5, '#D9734E');
+        skyGrad.addColorStop(1, '#F3AE6D');
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, width, height);
+
+        // Suburban roofline silhouette
+        ctx.fillStyle = '#17202A';
+        ctx.beginPath();
+        ctx.moveTo(0, height);
+        ctx.lineTo(0, height - 70);
+        ctx.lineTo(120, height - 120);
+        ctx.lineTo(240, height - 70);
+        ctx.lineTo(380, height - 90);
+        ctx.lineTo(500, height - 140);
+        ctx.lineTo(width, height - 80);
+        ctx.lineTo(width, height);
+        ctx.closePath();
+        ctx.fill();
+
+        // Overhead contrail / flight indicator
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(40, 60);
+        ctx.lineTo(width - 40, 110);
+        ctx.stroke();
+
+        // Timestamp watermark
+        ctx.fillStyle = '#FAF5EB';
+        ctx.font = '11px "JetBrains Mono", monospace';
+        ctx.fillText('OUTDOOR CAM 02 // SUBURBAN REEL', 20, 30);
+      }
+      videoFrames.push(canvas);
+    }
+  }
+
+  const metadata: MetadataReport = {
+    gps: {
+      latitude: 50.0379,
+      longitude: 8.5622,
+      altitude: 112.0,
+      locationName: 'Frankfurt Airway Approach Corridor (Near FRA Airport), Germany',
+    },
+    creationTime: '2026-11-24T17:42:10Z',
+    deviceModel: 'iPhone 15 Pro (A3102)',
+    software: 'iOS 18.2 Camera',
+    rawTags: {
+      'Make': 'Apple',
+      'Model': 'iPhone 15 Pro',
+      'FocalLength': '24mm',
+    },
+    isDemo: true,
+  };
+
+  const sha256 = await computeSha256(audio);
+
+  return {
+    audioBuffer: audio,
+    sampleRate,
+    duration,
+    metadata,
+    visualBoxes: [
+      {
+        x: 0.1,
+        y: 0.15,
+        width: 0.8,
+        height: 0.2,
+        label: 'Commercial Flight Vector Contrail',
+        type: 'text',
+        timestamp: 7.5,
+      },
+    ],
+    videoFrames,
+    transcriptDemo: {
+      text: '[Suburban Ambient Silence • Jet Engine Flyover in Background]',
+      speaker: 'Outdoor Mic',
+      isDemo: true,
+    },
+    sha256,
+  };
+}

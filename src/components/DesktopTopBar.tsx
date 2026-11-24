@@ -26,9 +26,7 @@ export const DesktopTopBar: React.FC<DesktopTopBarProps> = ({
 }) => {
   // Case name
   const caseName = scanResult
-    ? scanResult.isDemo
-      ? 'INCIDENT-001 (Hostel Room Reel)'
-      : scanResult.sourceName
+    ? scanResult.sourceName
     : 'No Case Loaded';
 
   // Status Chip
